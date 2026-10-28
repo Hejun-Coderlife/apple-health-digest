@@ -30,11 +30,6 @@
   .stat { background:var(--bg); border-radius:12px; padding:12px 14px; }
   .stat .v { font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
   .stat .l { font-size:12px; color:var(--sub); }
-  .charts { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px; }
-  .chart { background:var(--bg); border-radius:12px; padding:10px 12px 6px; }
-  .chart .t { font-size:13px; color:var(--sub); display:flex; justify-content:space-between; }
-  .chart .t b { color:var(--ink); font-variant-numeric:tabular-nums; }
-  .chart svg { width:100%; height:70px; display:block; }
   .opts { display:flex; flex-wrap:wrap; gap:10px 22px; align-items:center; font-size:14px; margin-bottom:12px; }
   .opts select { font:inherit; padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; }
   .opts label { display:flex; align-items:center; gap:6px; cursor:pointer; }
@@ -42,22 +37,50 @@
   .btns { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; align-items:center; }
   button, .btn { font:inherit; font-weight:600; border:0; border-radius:10px; padding:10px 18px; cursor:pointer; background:var(--red); color:#fff; text-decoration:none; }
   .btn.ghost, button.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
-  #size { font-size:13px; color:var(--sub); margin-left:auto; }
   h2 { font-size:17px; margin:0 0 14px; }
   .hide { display:none; }
-  @media (max-width:640px) { .steps, .stats, .charts { grid-template-columns:1fr 1fr; } }
+  .row { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .row h2 { margin:0; }
+  .range { font-size:14px; display:flex; align-items:center; gap:6px; }
+  .range select { font:inherit; padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; }
+  .cap { font-size:13px; color:var(--sub); margin:-8px 0 14px; }
+  .trends { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .m { background:var(--bg); border-radius:12px; padding:14px 14px 6px; min-width:0; }
+  .mh { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .mh b { font-size:15px; }
+  .u { font-size:12px; color:var(--sub); margin-left:6px; }
+  .badge { font-size:12px; font-weight:600; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .badge.good { background:#e3f4ea; color:#177a43; }
+  .badge.bad { background:#fde8e6; color:#c0352b; }
+  .badge.flat { background:#e9e9ee; color:#5b5b60; }
+  .big { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; margin:4px 0 2px; line-height:1.3; }
+  .big span { font-size:12px; font-weight:400; color:var(--sub); margin-left:6px; }
+  .big small { display:block; font-size:12px; font-weight:400; color:var(--sub); }
+  .plot, #sleepPlot { width:100%; }
+  svg { display:block; overflow:visible; }
+  svg .ax { font-size:11px; fill:#86868b; }
+  svg .yr { font-size:12px; font-weight:600; fill:#1d1d1f; paint-order:stroke; stroke:#f5f5f7; stroke-width:4px; }
+  .tr { display:grid; grid-template-columns:112px 1fr 130px; align-items:center; gap:10px; padding:5px 0; font-size:14px; }
+  .tb { height:12px; background:var(--bg); border-radius:6px; overflow:hidden; }
+  .tb i { display:block; height:100%; background:#2f6fdb; border-radius:6px; }
+  .tv { color:var(--sub); font-size:13px; font-variant-numeric:tabular-nums; }
+  .tv b { color:var(--ink); }
+  details { margin-top:16px; }
+  summary { cursor:pointer; font-size:14px; color:var(--sub); margin-bottom:12px; }
+  #tip { position:fixed; display:none; pointer-events:none; background:#1d1d1f; color:#fff; font-size:12px; line-height:1.6; padding:7px 11px; border-radius:8px; z-index:9; box-shadow:0 4px 14px rgba(0,0,0,.18); }
+  @media (max-width:640px) { .steps, .stats, .trends { grid-template-columns:1fr 1fr; } .trends { grid-template-columns:1fr; } .tr { grid-template-columns:80px 1fr 110px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>健康数据<span>压缩器</span></h1>
-  <p class="lead">把几年的 Apple 健康数据，压成一份 DeepSeek 等 AI 能完整读完的摘要。</p>
+  <p class="lead">把几年的 Apple 健康数据画成图，一眼看懂身体这几年的变化，再一键交给 AI 解读。</p>
 
   <div class="card">
     <ol class="steps">
       <li><b>手机导出</b><br>「健康」App → 右上角头像 → 导出所有健康数据</li>
       <li><b>传到电脑</b><br>用隔空投送或微信文件传输助手，把「导出.zip」发到电脑</li>
-      <li><b>拖进下面</b><br>生成摘要后一键复制，粘贴给 AI</li>
+      <li><b>拖进下面</b><br>马上出图；想要 AI 解读，一键复制给 DeepSeek</li>
     </ol>
   </div>
 
@@ -80,35 +103,54 @@
 
   <div id="result" class="hide">
     <div class="card">
-      <h2>读到了这些</h2>
-      <div class="stats" id="stats"></div>
-      <div class="charts" id="charts"></div>
-    </div>
-    <div class="card">
-      <h2>复制给 AI</h2>
-      <div class="opts">
-        <label>时间范围 <select id="optRange">
+      <div class="row"><h2>读到了这些</h2>
+        <label class="range">看 <select id="optRange">
           <option value="0">全部</option><option value="3">最近 3 年</option>
           <option value="2">最近 2 年</option><option value="1">最近 1 年</option>
-        </select></label>
-        <label>明细粒度 <select id="optGran">
-          <option value="month">按月</option><option value="week">按周</option>
-        </select></label>
-        <label><input type="checkbox" id="optFull"> 全部指标</label>
-        <label><input type="checkbox" id="optProfile" checked> 带上性别和年龄</label>
-        <label><input type="checkbox" id="optPrompt" checked> 附上分析要求</label>
-      </div>
-      <textarea id="out" readonly></textarea>
+        </select></label></div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="card">
+      <h2>这几年的变化</h2>
+      <p class="cap">蓝线 = 每月平均　虚线和数字 = 全年平均　鼠标移到图上看每个月</p>
+      <div class="trends" id="trends"></div>
+    </div>
+
+    <div class="card" id="sleepCard">
+      <h2>几点睡、几点醒</h2>
+      <p class="cap">每根柱子 = 那个月平均从几点睡到几点醒。柱子越整齐，作息越规律</p>
+      <div id="sleepPlot"></div>
+    </div>
+
+    <div class="card" id="trainCard">
+      <h2>常做的训练</h2>
+      <div id="train"></div>
+    </div>
+
+    <div class="card">
+      <h2>让 AI 帮你解读</h2>
+      <p class="cap">图里的数据已经整理成一段文字，复制后粘贴给 DeepSeek 就行</p>
       <div class="btns">
-        <button id="copy">复制全部</button>
-        <button class="ghost" id="save">下载为 txt</button>
+        <button id="copy">复制给 AI 的文字</button>
         <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek ↗</a>
+        <button class="ghost" id="save">下载为 txt</button>
         <button class="ghost" id="again">换一个文件</button>
-        <span id="size"></span>
       </div>
+      <details>
+        <summary>看看这段文字 · <span id="size"></span></summary>
+        <div class="opts">
+          <label>明细 <select id="optGran"><option value="month">按月</option><option value="week">按周</option></select></label>
+          <label><input type="checkbox" id="optFull"> 全部指标</label>
+          <label><input type="checkbox" id="optProfile" checked> 带上性别和年龄</label>
+          <label><input type="checkbox" id="optPrompt" checked> 附上分析要求</label>
+        </div>
+        <textarea id="out" readonly></textarea>
+      </details>
     </div>
   </div>
 </div>
+<div id="tip"></div>
 
 <script>
 // CORE-BEGIN 解析与汇总（不碰 DOM，可在 Node 里测试）
@@ -561,14 +603,34 @@ const HD = (() => {
     return L.join('\n').trim();
   }
 
-  return { digest, buildText, aggregate, rangeRows, COLS };
+  // 页面画图用：每月、每年、训练类型
+  function report(R, years) {
+    const rows = rangeRows(R, years), anyW = R.workouts.length > 0;
+    if (!rows.length) return { months: [], years: [], training: [] };
+    const from = rows[0].date, to = rows[rows.length - 1].date;
+    const cnt = new Map();
+    for (const w of R.workouts) {
+      if (w.date < from || w.date > to) continue;
+      const name = WORKOUT[w.type] || w.type;
+      const o = cnt.get(name) || { name, n: 0, min: 0 };
+      o.n++; o.min += w.min;
+      cnt.set(name, o);
+    }
+    return {
+      months: aggregate(rows, 'month', anyW).filter(o => o.days >= 10),
+      years: aggregate(rows, 'year', anyW),
+      training: [...cnt.values()].sort((a, b) => b.n - a.n),
+    };
+  }
+
+  return { digest, buildText, report, fmt, COLS };
 })();
 // CORE-END
 </script>
 
 <script>
 const $ = id => document.getElementById(id);
-let R = null;
+let R = null, REP = null;
 
 const ERR = {
   NO_DECOMPRESS: '你的浏览器版本太旧，不能直接读 zip。请换最新版 Chrome / Edge / Safari，或先把 zip 解压，再选里面的 export.xml。',
@@ -614,37 +676,195 @@ function showResult() {
   ];
   $('stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
   $('result').classList.remove('hide');
-  refresh();
+  render();
 }
 
-function sparkline(list, k, digits) {
-  const pts = list.map((o, i) => [i, o[k]]).filter(p => p[1] != null && isFinite(p[1]));
-  if (pts.length < 2) return null;
-  const vs = pts.map(p => p[1]), lo = Math.min(...vs), hi = Math.max(...vs);
-  const W = 300, H = 70, pad = 6;
-  const x = i => pad + i / Math.max(1, list.length - 1) * (W - pad * 2);
-  const y = v => H - pad - (hi === lo ? 0.5 : (v - lo) / (hi - lo)) * (H - pad * 2);
+// ---------- 图 ----------
+const INK = '#1d1d1f', SUB = '#86868b', GRID = '#e5e5ea', LINE = '#2f6fdb';
+const COL = Object.fromEntries(HD.COLS.map(c => [c.k, c]));
+// dir：1 越高越好，-1 越低越好，0 只说升降不评判
+// span：纵轴最少要覆盖的范围，免得 6.3→6.5 小时这种小波动被拉成大起大落
+// moved：变化超过这个量才算"变了"，否则显示基本持平
+const SHOW = [['rhr', -1, 10, 2], ['hrv', 1, 20, 4], ['vo2', 1, 8, 1.5], ['sleep', 1, 2, 0.3], ['deep', 1, 30, 8],
+  ['steps', 1, 4000, 800], ['ex', 1, 30, 5], ['wkN', 1, 4, 0.7], ['weight', 0, 6, 1.5]];
+
+const tip = $('tip');
+function showTip(e, html) {
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY - h - 12;
+  if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+  if (y < 8) y = e.clientY + 18;
+  tip.style.left = x + 'px';
+  tip.style.top = y + 'px';
+}
+const hideTip = () => tip.style.display = 'none';
+
+const mean = (list, k) => {
+  const v = list.map(o => o[k]).filter(x => x != null);
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+};
+const ym = key => key.slice(0, 4) + ' 年 ' + +key.slice(5, 7) + ' 月';
+
+// 纵轴取整齐的刻度：1/2/5 × 10^n
+function niceTicks(lo, hi) {
+  const raw = (hi - lo) / 3, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p;
+  const step = (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) out.push(v);
+  return out;
+}
+
+// 横轴：每月一格，1 月处标年份；开头不是 1 月时，离下一个 1 月太近就不标，免得两个年份叠在一起
+function xAxis(months, x, H) {
+  const firstJan = months.findIndex(o => o.key.endsWith('-01'));
+  const labelFirst = firstJan < 0 || firstJan > 0 && (x(firstJan) - x(0)) > 40;
+  return months.map((o, i) => ((i === 0 && labelFirst) || o.key.endsWith('-01'))
+    ? `<line x1="${x(i)}" x2="${x(i)}" y1="${H - 20}" y2="${H - 16}" stroke="${SUB}"/><text x="${x(i)}" y="${H - 4}" text-anchor="${i === 0 ? 'start' : 'middle'}" class="ax">${o.key.slice(0, 4)}</text>`
+    : '').join('');
+}
+
+function lineChart(box, months, c, span) {
+  const W = box.clientWidth || 380, H = 170, L = 40, RR = 10, T = 16, B = 24;
+  const n = months.length;
+  const x = i => L + (i + 0.5) / n * (W - L - RR);
+  const vals = months.map(o => o[c.k]).filter(v => v != null);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max((hi - lo) * 0.18, (span - (hi - lo)) / 2);
+  lo = Math.max(0, lo - pad); hi += pad;
+  const ticks = niceTicks(lo, hi);
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+
+  let s = '';
+  for (const v of ticks) {
+    const yy = y(v);
+    s += `<line x1="${L}" x2="${W - RR}" y1="${yy}" y2="${yy}" stroke="${GRID}"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end" class="ax">${+v.toFixed(2)}</text>`;
+  }
+  s += xAxis(months, x, H);
+  // 每年平均：虚线 + 数字
+  for (const yr of REP.years) {
+    if (yr[c.k] == null) continue;
+    const idx = months.map((o, i) => o.key.startsWith(yr.key) ? i : -1).filter(i => i >= 0);
+    if (!idx.length) continue;
+    const x0 = x(idx[0]) - 4, x1 = x(idx[idx.length - 1]) + 4, yy = y(yr[c.k]);
+    s += `<line x1="${x0}" x2="${x1}" y1="${yy}" y2="${yy}" stroke="${INK}" stroke-width="1.5" stroke-dasharray="4 3" opacity=".55"/>`;
+    if (idx.length >= 3) {
+      const ty = yy - 7 < T ? yy + 15 : yy - 7;
+      s += `<text x="${(x0 + x1) / 2}" y="${ty}" text-anchor="middle" class="yr">${HD.fmt(c, yr[c.k])}</text>`;
+    }
+  }
   let d = '', prev = -2;
-  for (const [i, v] of pts) { d += (i === prev + 1 ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); prev = i; }
-  const last = pts[pts.length - 1];
-  return {
-    svg: `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="#ff2d55" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`,
-    range: lo.toFixed(digits) + ' ~ ' + hi.toFixed(digits), last: last[1].toFixed(digits),
+  months.forEach((o, i) => {
+    if (o[c.k] == null) return;
+    d += (i === prev + 1 ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(o[c.k]).toFixed(1);
+    prev = i;
+  });
+  s += `<path d="${d}" fill="none" stroke="${LINE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  s += `<line class="guide" y1="${T}" y2="${H - B}" stroke="${SUB}" stroke-dasharray="2 2" visibility="hidden"/>`;
+  s += `<circle class="dot" r="4.5" fill="${LINE}" stroke="#fff" stroke-width="2" visibility="hidden"/>`;
+  s += `<rect class="hit" x="${L}" y="0" width="${W - L - RR}" height="${H}" fill="transparent"/>`;
+  box.innerHTML = `<svg width="${W}" height="${H}">${s}</svg>`;
+
+  const svg = box.firstChild, guide = svg.querySelector('.guide'), dot = svg.querySelector('.dot');
+  const hit = svg.querySelector('.hit');
+  hit.onmousemove = e => {
+    const mx = e.clientX - svg.getBoundingClientRect().left;
+    const i = Math.max(0, Math.min(n - 1, Math.round((mx - L) / (W - L - RR) * n - 0.5)));
+    const o = months[i], v = o[c.k];
+    guide.setAttribute('x1', x(i)); guide.setAttribute('x2', x(i)); guide.setAttribute('visibility', 'visible');
+    if (v != null) { dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(v)); dot.setAttribute('visibility', 'visible'); }
+    else dot.setAttribute('visibility', 'hidden');
+    showTip(e, `<b>${ym(o.key)}</b><br>${c.label} ${v != null ? HD.fmt(c, v) + ' ' + (c.unit || '') : '没数据'}`);
   };
+  hit.onmouseleave = () => { guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); hideTip(); };
 }
 
-function refresh() {
+function drawTrends() {
+  const box = $('trends');
+  box.innerHTML = '';
+  for (const [k, dir, span, moved] of SHOW) {
+    const c = COL[k], ms = REP.months.filter(o => o[k] != null);
+    if (ms.length < 3) continue;
+    const recent = mean(ms.slice(-6), k);
+    let badge = '', compare = '';
+    if (ms.length >= 12) {
+      const early = mean(ms.slice(0, 6), k), diff = recent - early;
+      compare = `<small>${ms[0].key.replace('-', ' 年 ')} 月起半年是 ${HD.fmt(c, early)}</small>`;
+      let cls = 'flat', word = '基本持平', arrow = '→';
+      if (Math.abs(diff) >= moved) {
+        arrow = diff > 0 ? '↑' : '↓';
+        const amt = Math.abs(diff).toFixed(c.d) + ' ';
+        if (dir) { const good = diff * dir > 0; cls = good ? 'good' : 'bad'; word = amt + (good ? '变好' : '变差'); }
+        else word = amt + (diff > 0 ? '上升' : '下降');
+      }
+      badge = `<span class="badge ${cls}">${arrow} ${word}</span>`;
+    }
+    const el = document.createElement('div');
+    el.className = 'm';
+    el.innerHTML = `<div class="mh"><div><b>${c.label}</b><span class="u">${[c.unit, c.hint].filter(Boolean).join(' · ')}</span></div>${badge}</div>
+      <div class="big">${HD.fmt(c, recent)}<span>最近半年</span>${compare}</div><div class="plot"></div>`;
+    box.appendChild(el);
+    lineChart(el.querySelector('.plot'), REP.months, c, span);
+  }
+}
+
+const clock = m => HD.fmt(COL.bed, m);
+function drawSleep() {
+  const months = REP.months, has = months.filter(o => o.bed != null && o.wake != null);
+  $('sleepCard').classList.toggle('hide', has.length < 2);
+  if (has.length < 2) return;
+  const box = $('sleepPlot');
+  const W = box.clientWidth || 600, H = 240, L = 46, RR = 10, T = 10, B = 24, n = months.length;
+  const x = i => L + (i + 0.5) / n * (W - L - RR);
+  const lo = Math.floor((Math.min(...has.map(o => o.bed)) - 20) / 60) * 60;
+  const hi = Math.ceil((Math.max(...has.map(o => o.wake)) + 20) / 60) * 60;
+  const y = m => T + (m - lo) / (hi - lo) * (H - T - B);
+  const step = hi - lo > 720 ? 180 : hi - lo > 420 ? 120 : 60;
+  let s = '';
+  for (let m = lo; m <= hi; m += step) {
+    s += `<line x1="${L}" x2="${W - RR}" y1="${y(m)}" y2="${y(m)}" stroke="${GRID}"/><text x="${L - 6}" y="${y(m) + 4}" text-anchor="end" class="ax">${clock(m)}</text>`;
+  }
+  s += xAxis(months, x, H);
+  const bw = Math.max(3, Math.min(14, (W - L - RR) / n * 0.62));
+  months.forEach((o, i) => {
+    if (o.bed == null || o.wake == null) return;
+    s += `<rect x="${x(i) - bw / 2}" y="${y(o.bed)}" width="${bw}" height="${Math.max(2, y(o.wake) - y(o.bed))}" rx="${Math.min(4, bw / 2)}" fill="${LINE}" opacity=".85"/>`;
+    s += `<rect class="hit" data-i="${i}" x="${x(i) - (W - L - RR) / n / 2}" y="${T}" width="${(W - L - RR) / n}" height="${H - T - B}" fill="transparent"/>`;
+  });
+  box.innerHTML = `<svg width="${W}" height="${H}">${s}</svg>`;
+  box.querySelectorAll('.hit').forEach(r => {
+    const o = months[+r.dataset.i];
+    r.onmousemove = e => showTip(e, `<b>${ym(o.key)}</b><br>入睡 ${clock(o.bed)} · 醒来 ${clock(o.wake)}` +
+      (o.sleep != null ? `<br>真正睡着 ${o.sleep.toFixed(1)} 小时` : '') +
+      (o.bedSd != null ? `<br>入睡时间前后差 ${Math.round(o.bedSd)} 分钟` : ''));
+    r.onmouseleave = hideTip;
+  });
+}
+
+function drawTraining() {
+  const t = REP.training.slice(0, 8);
+  $('trainCard').classList.toggle('hide', !t.length);
+  if (!t.length) return;
+  const max = t[0].n;
+  $('train').innerHTML = t.map(o => `<div class="tr"><span class="tn">${o.name}</span>
+    <span class="tb"><i style="width:${(o.n / max * 100).toFixed(1)}%"></i></span>
+    <span class="tv"><b>${o.n}</b> 次 · ${(o.min / 60).toFixed(o.min < 600 ? 1 : 0)} 小时</span></div>`).join('');
+}
+
+function render() {
+  REP = HD.report(R, +$('optRange').value);
+  drawTrends();
+  drawSleep();
+  drawTraining();
+  refreshText();
+}
+
+function refreshText() {
   const opt = { years: +$('optRange').value, gran: $('optGran').value, full: $('optFull').checked, profile: $('optProfile').checked, prompt: $('optPrompt').checked };
   const text = HD.buildText(R, opt);
   $('out').value = text;
-  const kb = new Blob([text]).size / 1024;
-  $('size').textContent = text.length.toLocaleString() + ' 字 · ' + kb.toFixed(0) + ' KB' + (text.length > 60000 ? ' · 偏长，建议按月、缩短范围或去掉全部指标' : '');
-  const weeks = HD.aggregate(HD.rangeRows(R, opt.years), 'week', R.workouts.length > 0);
-  const C = [['rhr', '静息心率', 1], ['hrv', 'HRV', 0], ['sleep', '睡眠（小时）', 1], ['steps', '日均步数', 0]];
-  $('charts').innerHTML = C.map(([k, name, dg]) => {
-    const s = sparkline(weeks, k, dg);
-    return s ? `<div class="chart"><div class="t"><span>${name} · 每周</span><span>范围 ${s.range} · 最近 <b>${s.last}</b></span></div>${s.svg}</div>` : '';
-  }).join('');
+  $('size').textContent = text.length.toLocaleString() + ' 字' + (text.length > 60000 ? ' · 偏长，建议按月或缩短范围' : '');
 }
 
 $('drop').onclick = () => $('file').click();
@@ -652,14 +872,17 @@ $('file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if
 $('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
 $('drop').ondragleave = () => $('drop').classList.remove('over');
 $('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) run(f); };
-for (const id of ['optRange', 'optGran', 'optFull', 'optProfile', 'optPrompt']) $(id).onchange = refresh;
+$('optRange').onchange = render;
+for (const id of ['optGran', 'optFull', 'optProfile', 'optPrompt']) $(id).onchange = refreshText;
+let rz;
+addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (REP) { drawTrends(); drawSleep(); } }, 150); });
 
 $('copy').onclick = async () => {
   const t = $('out').value;
   try { await navigator.clipboard.writeText(t); }
   catch { $('out').select(); document.execCommand('copy'); }
   $('copy').textContent = '已复制 ✓';
-  setTimeout(() => $('copy').textContent = '复制全部', 1500);
+  setTimeout(() => $('copy').textContent = '复制给 AI 的文字', 1500);
 };
 $('save').onclick = () => {
   const a = document.createElement('a');
@@ -668,7 +891,7 @@ $('save').onclick = () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-$('again').onclick = () => { $('result').classList.add('hide'); $('pick').classList.remove('hide'); };
+$('again').onclick = () => { $('result').classList.add('hide'); $('pick').classList.remove('hide'); scrollTo(0, 0); };
 </script>
 </body>
 </html>
