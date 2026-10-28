@@ -66,6 +66,13 @@
   .stat { background:var(--tile); border-radius:var(--r2); padding:8px 10px; }
   .stat .v { font-size:16px; font-weight:var(--num-w); font-family:var(--num); font-variant-numeric:tabular-nums; }
   .stat .l { font-size:11px; color:var(--sub); }
+  .stat .v span { display:none; }
+  .stat.wide { grid-column:span 2; }
+  .stat.wide .v { display:flex; align-items:baseline; gap:6px; }
+  .stat.wide .v span { display:inline; font-size:12px; font-weight:500; color:var(--sub); font-family:var(--font); }
+  .stat.wide .v em { margin-left:auto; font-style:normal; font-size:13px; color:var(--data); }
+  .sbar { height:4px; background:var(--track); border-radius:2px; margin:5px 0 4px; overflow:hidden; }
+  .sbar i { display:block; height:100%; background:var(--data); border-radius:2px; }
   .memo { display:grid; gap:4px; font-size:12px; color:var(--sub); }
   .memo span { display:flex; gap:6px; align-items:flex-start; }
   .memo .ic { width:14px; height:14px; margin-top:2px; }
@@ -84,6 +91,7 @@
   .sh { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
   h2 { font-size:17px; margin:0; font-family:var(--display); font-weight:var(--h-w); }
   .cap { font-size:12px; color:var(--sub); }
+  .note { font-size:12px; color:var(--sub); background:var(--tile); border-radius:8px; padding:6px 10px; margin:-6px 0 12px; display:inline-block; }
   .duo { display:grid; grid-template-columns:2fr 1fr; gap:18px; }
   .duo:has(#sec-sleep.hide), .duo:has(#sec-train.hide) { grid-template-columns:1fr; }
 
@@ -145,6 +153,15 @@
   .big span { font-size:12px; font-weight:400; color:var(--sub); margin-left:6px; font-family:var(--font); }
   .big small { display:block; font-size:12px; font-weight:400; color:var(--sub); font-family:var(--font); }
   .plot, #sleepPlot { width:100%; }
+  .m { display:flex; flex-direction:column; }
+  .m .plot { margin-top:auto; }
+  .mean { display:flex; gap:8px; align-items:flex-start; font-size:12px; line-height:1.55; color:var(--ink); margin:8px 0 6px; }
+  .mean em { display:block; font-style:normal; color:var(--sub); }
+  .lv { flex:none; font-size:11px; font-weight:600; padding:1px 7px; border-radius:5px; margin-top:1px; }
+  .lv.good { background:var(--good-soft); color:var(--good-ink); }
+  .lv.ok { background:var(--flat-soft); color:var(--sub); }
+  .lv.warn { background:#fdf0dc; color:#a86500; }
+  .lv.bad { background:var(--bad-soft); color:var(--bad-ink); }
   svg { display:block; overflow:visible; }
   svg .ax { font-size:11px; fill:var(--sub); font-family:var(--font); }
   svg .yr { font-size:12px; font-weight:600; fill:var(--ink); font-family:var(--num); }
@@ -170,7 +187,13 @@
   .ai { display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center; }
   .btns { display:flex; flex-wrap:wrap; gap:10px; }
   .opts { display:flex; flex-wrap:wrap; gap:10px 22px; align-items:center; margin-bottom:12px; }
-  .opts label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .opts label { display:flex; align-items:center; gap:7px; cursor:pointer; }
+  .optl { color:var(--sub); margin-right:-14px; }
+  .seg.sm button { padding:4px 12px; font-size:13px; }
+  input[type=checkbox] { appearance:none; -webkit-appearance:none; width:17px; height:17px; margin:0; border:1.5px solid var(--mute); border-radius:5px; background:var(--panel); display:grid; place-items:center; cursor:pointer; transition:.15s; }
+  input[type=checkbox]::after { content:""; width:5px; height:9px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px); opacity:0; }
+  input[type=checkbox]:checked { background:var(--accent); border-color:var(--accent); }
+  input[type=checkbox]:checked::after { opacity:1; }
   details { margin-top:14px; }
   summary { cursor:pointer; color:var(--sub); margin-bottom:12px; }
   textarea { width:100%; height:320px; font:12px/1.5 ui-monospace,Menlo,monospace; border:1px solid var(--line); border-radius:var(--r2); padding:12px; resize:vertical; background:var(--tile); color:var(--ink); }
@@ -330,6 +353,7 @@ h2 { font-size:20px; letter-spacing:.04em; }
     <div class="duo">
       <section class="card" id="sec-sleep">
         <div class="sh"><div class="eb">03 · Sleep</div><h2>几点睡、几点醒</h2><span class="cap">每根柱子 = 那个月平均从几点睡到几点醒，越整齐越规律</span></div>
+        <div class="note" id="sleepNote"></div>
         <div id="sleepPlot"></div>
       </section>
       <section class="card" id="sec-train">
@@ -349,7 +373,8 @@ h2 { font-size:20px; letter-spacing:.04em; }
       <details>
         <summary>看看这段文字 · <span id="size"></span></summary>
         <div class="opts">
-          <label>明细 <select id="optGran"><option value="month">按月</option><option value="week">按周</option></select></label>
+          <span class="optl">明细</span><div class="seg sm" id="segGran"><button data-v="month" class="on">按月</button><button data-v="week">按周</button></div>
+          <input type="hidden" id="optGran" value="month">
           <label><input type="checkbox" id="optFull"> 全部指标</label>
           <label><input type="checkbox" id="optProfile" checked> 带上性别和年龄</label>
           <label><input type="checkbox" id="optPrompt" checked> 附上分析要求</label>
@@ -911,17 +936,29 @@ function showResult() {
     $('newFile').onclick = newFile;
   };
   const span = R.first ? (Date.parse(R.last) - Date.parse(R.first)) / 864e5 / 365.25 : 0;
-  setRange(span > 3.2 ? '3' : '0');
+  setRange('0');
+  // 睡眠：从第一晚有记录算起，有多少晚记到了；训练：从第一次训练算起，平均每周几次
+  const days = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5) + 1;
+  const slept = R.rows.filter(r => r.sleep != null);
+  const sleepPct = slept.length ? slept.length / days(slept[0].date, R.last) : 0;
+  const wk = R.workouts.map(w => w.date).sort();
+  const perWeek = wk.length ? wk.length / Math.max(1, days(wk[0], R.last) / 7) : 0;
+  const ymShort = d => d.slice(0, 4) + '.' + +d.slice(5, 7);
   const stats = [
     [span >= 1 ? span.toFixed(1) + ' 年' : Math.round(span * 365) + ' 天', '数据跨度'],
     [R.records >= 1e6 ? (R.records / 1e4).toFixed(0) + ' 万' : R.records.toLocaleString(), '条原始记录'],
-    [R.nights.toLocaleString(), '晚睡眠'],
-    [R.workouts.length.toLocaleString(), '次训练'],
-  ];
+    slept.length && [slept.length.toLocaleString() + ' 晚', '有睡眠记录', sleepPct,
+      `${ymShort(slept[0].date)} 起，${Math.round(sleepPct * 100)}% 的晚上有记录`],
+    wk.length && [wk.length.toLocaleString() + ' 次', '训练', null,
+      `${ymShort(wk[0])} 起，平均每周 ${perWeek.toFixed(1)} 次`],
+  ].filter(Boolean);
   const age = R.dob && (R.exportDate || R.last) ? Math.floor((Date.parse(R.exportDate || R.last) - Date.parse(R.dob)) / 864e5 / 365.25) : null;
   $('who').textContent = [R.first + ' 至 ' + R.last, R.sex, age > 0 && age < 120 ? age + ' 岁' : null,
     R.exportDate ? '手机导出于 ' + R.exportDate : null].filter(Boolean).join(' · ');
-  $('stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('stats').innerHTML = stats.map(([v, l, pct, note]) => `<div class="stat${note ? ' wide' : ''}"><div class="v">${v}<span>${l}</span>` +
+    (pct != null ? `<em>${Math.round(pct * 100)}%</em>` : '') + '</div>' +
+    (pct != null ? `<div class="sbar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div>` : '') +
+    `<div class="l">${note || l}</div></div>`).join('');
   $('landing').classList.add('hide');
   $('result').classList.remove('hide');
   render();
@@ -1059,6 +1096,38 @@ function lineChart(box, all, c, span, target, targetLabel) {
   hit.onmouseleave = () => { guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); hideTip(); };
 }
 
+// 每个指标：一句话说它是什么、参考范围是多少，再给最近半年打个档（常见参考值，不是诊断）
+const ageOf = () => R.dob ? Math.floor((Date.parse(R.exportDate || R.last) - Date.parse(R.dob)) / 864e5 / 365.25) : null;
+function vo2Bars(age, sex) {
+  // 30~39 岁的分档，每大 10 岁约降 3.5
+  const t = sex === '女' ? [28, 33, 38] : [35, 40, 45], d = age ? (age - 35) / 10 * 3.5 : 0;
+  return t.map(v => Math.round(v - d));
+}
+const MEANS = {
+  rhr: { what: '安静坐着时每分钟心跳几次，心脏越有劲跳得越少', ref: () => '成年人一般 60~100，常运动的人 50~60',
+    lv: v => v < 50 ? ['good', '运动员水平'] : v < 60 ? ['good', '很好'] : v < 75 ? ['ok', '正常'] : v <= 90 ? ['warn', '正常偏高'] : ['bad', '偏高'] },
+  hrv: { what: '心跳间隔的细微变化，越大说明恢复得越好、压力越小',
+    ref: x => `同龄人大约 ${hrvNorm(x.age)} 毫秒，个人差异大，主要跟自己比`,
+    lv: (v, x) => v >= hrvNorm(x.age) * 1.15 ? ['good', '高于同龄人'] : v >= hrvNorm(x.age) * 0.85 ? ['ok', '同龄人平均'] : ['warn', '低于同龄人'] },
+  vo2: { what: '身体每分钟能用多少氧气，代表心肺耐力，和长寿关系密切',
+    ref: x => { const t = vo2Bars(x.age, x.sex); return `${[x.sex, x.age ? x.age + ' 岁' : ''].filter(Boolean).join(' · ') || '30 多岁'}：${t[1]} 以上算良好，${t[2]} 以上优秀`; },
+    lv: (v, x) => { const t = vo2Bars(x.age, x.sex); return v >= t[2] ? ['good', '优秀'] : v >= t[1] ? ['good', '良好'] : v >= t[0] ? ['ok', '一般'] : ['warn', '偏低']; } },
+  sleep: { what: '真正睡着的时间，不算躺在床上醒着的', ref: () => '成年人建议每晚 7~9 小时',
+    lv: v => v > 9.5 ? ['warn', '偏多'] : v >= 7 ? ['good', '够了'] : v >= 6 ? ['warn', '偏少'] : ['bad', '不够'] },
+  deep: { what: '睡得最沉的阶段，身体在这时修复、大脑清理垃圾',
+    ref: x => `一般占整晚的 13%~23%${x.share ? `，你占 ${Math.round(x.share * 100)}%` : ''}`,
+    lv: (v, x) => !x.share ? ['ok', '—'] : x.share >= 0.13 ? ['good', '正常'] : ['warn', '偏少'] },
+  steps: { what: '每天走路的总步数，包括上下班、逛街', ref: () => '每天 8000 步左右，健康收益最明显',
+    lv: v => v >= 10000 ? ['good', '很活跃'] : v >= 8000 ? ['good', '达标'] : v >= 5000 ? ['warn', '偏少'] : ['bad', '久坐'] },
+  ex: { what: '让心跳明显加快的活动时间，就是手表上的绿环', ref: () => '世卫组织建议每周至少 150 分钟，约每天 22 分钟',
+    lv: v => v >= 30 ? ['good', '达标'] : v >= 22 ? ['ok', '刚够最低建议'] : ['warn', '不够'] },
+  wkN: { what: '每周用手表记录的训练次数（跑步、力量、游泳等）', ref: () => '建议每周 3 次以上，其中 2 次力量训练',
+    lv: v => v >= 3 ? ['good', '规律'] : v >= 1.5 ? ['warn', '偏少'] : ['bad', '很少'] },
+  weight: { what: '体重要结合身高看才知道胖瘦，这里主要看它有没有变', ref: () => '和最早半年比，变化在 2 公斤以内算稳定',
+    lv: (v, x) => x.diff == null ? ['ok', '—'] : Math.abs(x.diff) < 2 ? ['good', '稳定'] : ['warn', x.diff > 0 ? '在上升' : '在下降'] },
+};
+const hrvNorm = age => Math.round(age ? Math.max(25, 66 - 0.7 * age) : 42);
+
 function drawTrends() {
   const box = $('trends');
   box.innerHTML = '';
@@ -1066,9 +1135,10 @@ function drawTrends() {
     const c = COL[k], ms = REP.months.filter(o => o[k] != null);
     if (ms.length < 3) continue;
     const recent = mean(ms.slice(-6), k);
-    let badge = '', compare = '';
+    let badge = '', compare = '', diff = null;
     if (ms.length >= 12) {
-      const early = mean(ms.slice(0, 6), k), diff = recent - early;
+      const early = mean(ms.slice(0, 6), k);
+      diff = recent - early;
       compare = `<small>最早半年是 ${HD.fmt(c, early)}（${ym(ms[0].key)}起）</small>`;
       let cls = 'flat', word = '基本持平', arrow = '→';
       if (Math.abs(diff) >= moved) {
@@ -1082,11 +1152,20 @@ function drawTrends() {
     const el = document.createElement('div');
     el.className = 'm';
     el.innerHTML = `<div class="mh"><div><b>${c.label}</b><span class="u">${[c.unit, c.hint].filter(Boolean).join(' · ')}</span></div>${badge}</div>
-      <div class="big">${HD.fmt(c, recent)}<span>最近半年</span>${compare}</div>
+      <div class="big">${HD.fmt(c, recent)}<span>最近半年</span>${compare}</div>${meaning(k, recent, diff)}
       <div class="tgl">${target != null ? `<i></i>${targetLabel}` : '&nbsp;'}</div><div class="plot"></div>`;
     box.appendChild(el);
     lineChart(el.querySelector('.plot'), REP.months, c, span, target, targetLabel);
   }
+}
+
+function meaning(k, v, diff) {
+  const M = MEANS[k];
+  if (!M) return '';
+  const sl = mean(REP.months.filter(o => o.sleep != null).slice(-6), 'sleep');
+  const x = { age: ageOf(), sex: R.sex, diff, share: k === 'deep' && sl ? v / (sl * 60) : null };
+  const [cls, word] = M.lv(v, x);
+  return `<div class="mean"><span class="lv ${cls}">${word}</span><span>${M.what}<em>${M.ref(x)}</em></span></div>`;
 }
 
 const clock = m => HD.fmt(COL.bed, m);
@@ -1094,6 +1173,12 @@ function drawSleep() {
   const months = trim(REP.months, o => o.bed != null && o.wake != null), has = months.filter(o => o.bed != null && o.wake != null);
   $('sec-sleep').classList.toggle('hide', has.length < 2);
   if (has.length < 2) return;
+  // 选的范围比睡眠记录长时，说清楚为什么图只画了这几年
+  const shown = REP.years.map(y => y.key), firstY = months[0].key.slice(0, 4);
+  const before = shown.filter(y => y < firstY), gaps = shown.filter(y => y >= firstY && REP.years.find(o => o.key === y).bed == null);
+  $('sleepNote').innerHTML = [before.length ? `睡眠记录从 ${ym(months[0].key)} 开始（要戴着手表睡觉才有），之前的 ${before.length} 年没有` : '',
+    gaps.length ? `${gaps.join('、')} 年整年没有睡眠记录，可能那段时间晚上没戴表` : ''].filter(Boolean).join('；');
+  $('sleepNote').classList.toggle('hide', !before.length && !gaps.length);
   const box = $('sleepPlot');
   const W = box.clientWidth || 600, H = 240, L = 42, RR = 4, T = 10, B = 22, n = months.length;
   const x = i => L + (i + 0.5) / n * (W - L - RR);
@@ -1313,7 +1398,12 @@ function setRange(v) {
   for (const b of $('segRange').children) b.classList.toggle('on', b.dataset.v === v);
 }
 for (const b of $('segRange').children) b.onclick = () => { if (b.dataset.v === $('optRange').value) return; setRange(b.dataset.v); render(); };
-for (const id of ['optGran', 'optFull', 'optProfile', 'optPrompt']) $(id).onchange = refreshText;
+for (const id of ['optFull', 'optProfile', 'optPrompt']) $(id).onchange = refreshText;
+for (const b of $('segGran').children) b.onclick = () => {
+  $('optGran').value = b.dataset.v;
+  for (const x of $('segGran').children) x.classList.toggle('on', x === b);
+  refreshText();
+};
 let rz;
 addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (REP) { readColors(); drawTrends(); drawSleep(); } }, 150); });
 
