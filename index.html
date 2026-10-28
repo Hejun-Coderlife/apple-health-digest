@@ -76,7 +76,10 @@
   .tt { font-size:22px; margin:0; font-family:var(--display); font-weight:var(--h-w); }
   .top .sub { color:var(--sub); font-size:13px; }
   .tools { display:flex; align-items:center; gap:10px; }
-  .range { display:flex; align-items:center; gap:8px; color:var(--sub); }
+  .seg { display:flex; padding:3px; gap:2px; background:#e8e8ed; border-radius:10px; }
+  .seg button { background:none; border:0; color:var(--sub); font-weight:500; padding:6px 14px; border-radius:8px; transition:.15s; }
+  .seg button:hover { color:var(--ink); }
+  .seg button.on { background:var(--panel); color:var(--ink); font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.1), 0 0 0 .5px rgba(0,0,0,.04); }
   section.card { background:var(--panel); border:var(--border); border-radius:var(--r); padding:22px 24px; margin-bottom:18px; box-shadow:var(--shadow); scroll-margin-top:80px; }
   .sh { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
   h2 { font-size:17px; margin:0; font-family:var(--display); font-weight:var(--h-w); }
@@ -128,7 +131,9 @@
   .l-thin { border-top:1.5px solid var(--data); opacity:.4; }
   .l-dash { border-top:2px dashed var(--good); }
   .trends { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-  .m { background:var(--tile); border-radius:var(--r2); padding:16px 16px 6px; min-width:0; }
+  .m { background:var(--tile); border-radius:var(--r2); padding:16px 16px 6px; min-width:0; transition:box-shadow .15s, background .15s; }
+  .m:hover, .ad:hover, .li:hover { background:var(--panel); box-shadow:0 0 0 1px var(--line), 0 6px 20px rgba(0,0,0,.06); }
+  .ad, .li { transition:box-shadow .15s, background .15s; }
   .mh { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
   .mh b { font-size:15px; font-weight:600; }
   .u { font-size:12px; color:var(--sub); margin-left:6px; }
@@ -144,11 +149,18 @@
   svg .ax { font-size:11px; fill:var(--sub); font-family:var(--font); }
   svg .yr { font-size:12px; font-weight:600; fill:var(--ink); font-family:var(--num); }
   svg .nd { font-size:12px; fill:var(--mute); }
+  .sb { opacity:.85; transition:opacity .12s; }
+  svg.hov .sb { opacity:.25; }
+  svg.hov .sb.on { opacity:1; }
+  svg .tl { font-size:11px; font-weight:700; fill:var(--ink); font-family:var(--num); paint-order:stroke; stroke:var(--panel); stroke-width:3px; }
   .tgl { font-size:12px; color:var(--good-ink); display:flex; align-items:center; gap:6px; margin-top:2px; }
   .tgl i { width:18px; border-top:2px dashed var(--good); }
 
   /* 训练 */
-  .tr { display:grid; grid-template-columns:92px 1fr auto; align-items:center; gap:10px; padding:6px 0; font-size:13px; }
+  .tr { display:grid; grid-template-columns:92px 1fr auto; align-items:center; gap:10px; padding:6px 8px; margin:0 -8px; border-radius:8px; font-size:13px; transition:background .12s; }
+  .tr:hover { background:color-mix(in srgb, var(--data) 6%, transparent); }
+  #train:hover .tr:not(:hover) .tb i { opacity:.35; }
+  .tb i { transition:opacity .12s; }
   .tb { height:10px; background:var(--tile); border-radius:5px; overflow:hidden; }
   .tb i { display:block; height:100%; background:var(--data); border-radius:5px; }
   .tv { color:var(--sub); font-size:12px; font-variant-numeric:tabular-nums; }
@@ -255,12 +267,9 @@
     <header class="top">
       <div><div class="eb">Health Report</div><h1 class="tt">我的健康看板</h1><div class="sub" id="who"></div></div>
       <div class="tools">
-        <label class="range">时间范围 <select id="optRange">
-          <option value="0">全部</option><option value="3">最近 3 年</option>
-          <option value="2">最近 2 年</option><option value="1">最近 1 年</option>
-        </select></label>
+        <div class="seg" id="segRange"><button data-v="1">近 1 年</button><button data-v="2">近 2 年</button><button data-v="3">近 3 年</button><button data-v="0">全部</button></div>
+        <input type="hidden" id="optRange" value="0">
         <button id="copyTop"><svg class="ic"><use href="#i-copy"/></svg>复制给 AI</button>
-        <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek<svg class="ic"><use href="#i-ext"/></svg></a>
       </div>
     </header>
 
@@ -288,10 +297,9 @@
 
     <section class="card" id="sec-ai">
       <div class="ai">
-        <div><div class="eb">05 · AI</div><h2>让 AI 帮你解读</h2><div class="cap">上面的数据已经整理成一段文字，复制后粘贴给 DeepSeek，它会按固定格式写解读</div></div>
+        <div><div class="eb">05 · AI</div><h2>让 AI 帮你解读</h2><div class="cap">上面的数据已经整理成一段文字，复制后粘贴到 DeepSeek 等 AI 对话框里，它会按固定格式写解读</div></div>
         <div class="btns">
           <button id="copy"><svg class="ic"><use href="#i-copy"/></svg>复制给 AI 的文字</button>
-          <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek<svg class="ic"><use href="#i-ext"/></svg></a>
           <button class="ghost" id="save"><svg class="ic"><use href="#i-down"/></svg>下载为 txt</button>
         </div>
       </div>
@@ -859,7 +867,7 @@ function showResult() {
     $('newFile').onclick = newFile;
   };
   const span = R.first ? (Date.parse(R.last) - Date.parse(R.first)) / 864e5 / 365.25 : 0;
-  $('optRange').value = span > 3.2 ? '3' : '0';
+  setRange(span > 3.2 ? '3' : '0');
   const stats = [
     [span >= 1 ? span.toFixed(1) + ' 年' : Math.round(span * 365) + ' 天', '数据跨度'],
     [R.records >= 1e6 ? (R.records / 1e4).toFixed(0) + ' 万' : R.records.toLocaleString(), '条原始记录'],
@@ -1054,19 +1062,33 @@ function drawSleep() {
     s += `<line x1="${L}" x2="${W - RR}" y1="${y(m)}" y2="${y(m)}" stroke="${GRID}"/><text x="${L - 6}" y="${y(m) + 4}" text-anchor="end" class="ax">${clock(m)}</text>`;
   }
   s = yearBands(months, x, (W - L - RR) / n, T, H - B, H, null) + s;
-  const bw = Math.max(3, Math.min(14, (W - L - RR) / n * 0.62));
+  const bw = Math.max(3, Math.min(14, (W - L - RR) / n * 0.62)), cw = (W - L - RR) / n;
+  // 悬停时这一列打底色、其它柱子变淡，柱子两端标出几点睡、几点醒
+  s += `<rect class="col" y="${T}" width="${cw}" height="${H - T - B}" rx="6" fill="${LINE}" opacity=".08" visibility="hidden"/>`;
   months.forEach((o, i) => {
     if (o.bed == null || o.wake == null) return;
-    s += `<rect x="${x(i) - bw / 2}" y="${y(o.bed)}" width="${bw}" height="${Math.max(2, y(o.wake) - y(o.bed))}" rx="${Math.min(4, bw / 2)}" fill="${LINE}" opacity=".85"/>`;
+    s += `<rect class="sb" data-i="${i}" x="${x(i) - bw / 2}" y="${y(o.bed)}" width="${bw}" height="${Math.max(2, y(o.wake) - y(o.bed))}" rx="${Math.min(4, bw / 2)}" fill="${LINE}"/>`;
     s += `<rect class="hit" data-i="${i}" x="${x(i) - (W - L - RR) / n / 2}" y="${T}" width="${(W - L - RR) / n}" height="${H - T - B}" fill="transparent"/>`;
   });
+  s += `<text class="tl tl-a" text-anchor="middle" visibility="hidden"></text><text class="tl tl-b" text-anchor="middle" visibility="hidden"></text>`;
   box.innerHTML = `<svg width="${W}" height="${H}">${s}</svg>`;
+  const svg = box.firstChild, col = svg.querySelector('.col'), ta = svg.querySelector('.tl-a'), tb = svg.querySelector('.tl-b');
   box.querySelectorAll('.hit').forEach(r => {
-    const o = months[+r.dataset.i];
+    const i = +r.dataset.i, o = months[i];
+    r.onmouseenter = () => {
+      svg.classList.add('hov');
+      svg.querySelectorAll('.sb').forEach(b => b.classList.toggle('on', +b.dataset.i === i));
+      col.setAttribute('x', x(i) - cw / 2); col.setAttribute('visibility', 'visible');
+      ta.textContent = clock(o.bed); ta.setAttribute('x', x(i)); ta.setAttribute('y', y(o.bed) - 6); ta.setAttribute('visibility', 'visible');
+      tb.textContent = clock(o.wake); tb.setAttribute('x', x(i)); tb.setAttribute('y', y(o.wake) + 15); tb.setAttribute('visibility', 'visible');
+    };
     r.onmousemove = e => showTip(e, `<b>${ym(o.key)}</b><br>入睡 ${clock(o.bed)} · 醒来 ${clock(o.wake)}` +
       (o.sleep != null ? `<br>真正睡着 ${o.sleep.toFixed(1)} 小时` : '') +
       (o.bedSd != null ? `<br>入睡时间前后差 ${Math.round(o.bedSd)} 分钟` : ''));
-    r.onmouseleave = hideTip;
+    r.onmouseleave = () => {
+      hideTip(); svg.classList.remove('hov');
+      for (const el of [col, ta, tb]) el.setAttribute('visibility', 'hidden');
+    };
   });
 }
 
@@ -1241,7 +1263,12 @@ $('file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if
 $('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
 $('drop').ondragleave = () => $('drop').classList.remove('over');
 $('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) run(f); };
-$('optRange').onchange = render;
+// 时间范围：一排分段按钮，点哪个哪个变白底
+function setRange(v) {
+  $('optRange').value = v;
+  for (const b of $('segRange').children) b.classList.toggle('on', b.dataset.v === v);
+}
+for (const b of $('segRange').children) b.onclick = () => { if (b.dataset.v === $('optRange').value) return; setRange(b.dataset.v); render(); };
 for (const id of ['optGran', 'optFull', 'optProfile', 'optPrompt']) $(id).onchange = refreshText;
 let rz;
 addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (REP) { readColors(); drawTrends(); drawSleep(); } }, 150); });
