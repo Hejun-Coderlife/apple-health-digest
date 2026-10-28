@@ -43,6 +43,9 @@
   .row h2 { margin:0; }
   .range { font-size:14px; display:flex; align-items:center; gap:6px; }
   .range select { font:inherit; padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; }
+  .memo { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin-top:12px; font-size:13px; color:var(--sub); }
+  .memo a { color:var(--ink); font-weight:600; }
+  .privacy a { color:var(--ink); }
   .cap { font-size:13px; color:var(--sub); margin:-8px 0 14px; }
   .trends { display:grid; grid-template-columns:repeat(auto-fill,minmax(400px,1fr)); gap:12px; }
   .m { background:var(--bg); border-radius:12px; padding:14px 14px 6px; min-width:0; }
@@ -91,6 +94,7 @@
     </div>
     <input type="file" id="file" accept=".zip,.xml" hidden>
     <div class="privacy">🔒 全程在你自己的电脑上处理，文件不会上传到任何地方（不放心可以断网再用）</div>
+    <div class="privacy hide" id="back"><a href="#" id="backLink">← 不换了，回到上次的结果</a></div>
   </div>
 
   <div class="err" id="err"></div>
@@ -109,6 +113,7 @@
           <option value="2">最近 2 年</option><option value="1">最近 1 年</option>
         </select></label></div>
       <div class="stats" id="stats"></div>
+      <div class="memo" id="memo"></div>
     </div>
 
     <div class="card">
@@ -135,7 +140,6 @@
         <button id="copy">复制给 AI 的文字</button>
         <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek ↗</a>
         <button class="ghost" id="save">下载为 txt</button>
-        <button class="ghost" id="again">换一个文件</button>
       </div>
       <details>
         <summary>看看这段文字 · <span id="size"></span></summary>
@@ -656,6 +660,8 @@ async function run(file) {
         (left != null ? ' · 还要约 ' + Math.ceil(left) + ' 秒' : '');
     });
     $('prog').classList.add('hide');
+    R.savedAt = new Date().toISOString().slice(0, 10);
+    R.saved = remember(R);
     showResult();
   } catch (e) {
     console.error(e);
@@ -665,7 +671,36 @@ async function run(file) {
   }
 }
 
+// ---------- 记住上次的结果（只存在这台电脑的浏览器里） ----------
+const STORE = 'health-digest-v1';
+function remember(R) {
+  const round = v => typeof v === 'number' ? Math.round(v * 100) / 100 : v;
+  const slim = { ...R, rows: R.rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, round(v)]))) };
+  try { localStorage.setItem(STORE, JSON.stringify(slim)); return true; }
+  catch (e) { console.warn('保存失败', e); return false; }
+}
+function recall() {
+  try { return JSON.parse(localStorage.getItem(STORE)); } catch { return null; }
+}
+
 function showResult() {
+  $('memo').innerHTML = (R.saved === false
+    ? '<span>⚠️ 这次的结果太大或浏览器不允许保存，下次打开需要重新导入</span>'
+    : `<span>💾 已记住 ${R.savedAt} 读取的数据${R.exportDate ? '（手机导出于 ' + R.exportDate + '）' : ''}，下次打开直接显示</span>`) +
+    '<a href="#" id="newFile">导入新的导出包</a>' + (R.saved === false ? '' : '<a href="#" id="forget">清除记录</a>');
+  $('newFile').onclick = e => {
+    e.preventDefault();
+    $('result').classList.add('hide');
+    $('pick').classList.remove('hide');
+    $('back').classList.remove('hide');
+    scrollTo(0, 0);
+  };
+  if ($('forget')) $('forget').onclick = e => {
+    e.preventDefault();
+    localStorage.removeItem(STORE);
+    R.saved = null;
+    $('memo').innerHTML = '<span>已清除。这台电脑上不再保存你的健康数据，关掉页面就没了</span>';
+  };
   const span = R.first ? (Date.parse(R.last) - Date.parse(R.first)) / 864e5 / 365.25 : 0;
   $('optRange').value = span > 3.2 ? '3' : '0';
   const stats = [
@@ -903,7 +938,15 @@ $('save').onclick = () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
-$('again').onclick = () => { $('result').classList.add('hide'); $('pick').classList.remove('hide'); scrollTo(0, 0); };
+$('backLink').onclick = e => { e.preventDefault(); $('pick').classList.add('hide'); $('result').classList.remove('hide'); };
+
+const last = recall();
+if (last && last.rows) {
+  R = last;
+  R.saved = true;
+  $('pick').classList.add('hide');
+  showResult();
+}
 </script>
 </body>
 </html>
