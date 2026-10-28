@@ -5,134 +5,154 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>健康数据压缩器 · 我的健康看板</title>
 <style>
-  :root { --red:#ff2d55; --ink:#1d1d1f; --sub:#6e6e73; --line:#e5e5ea; --bg:#f5f5f7; --blue:#2f6fdb; --side:248px; }
+  /* 主题变量：换风格只改这一段（design/ 里的 5 款就是覆盖这些变量和少量结构） */
+  :root {
+    --bg:#f5f5f7; --panel:#fff; --tile:#f5f5f7; --ink:#1d1d1f; --sub:#6e6e73; --mute:#aeaeb2; --line:#e5e5ea;
+    --accent:#ff2d55; --on-accent:#fff; --accent-soft:#ffe8ee; --accent-ink:#d6204a;
+    --data:#2f6fdb; --good:#1f9d55; --good-ink:#177a43; --good-soft:#e3f4ea; --warn:#f0a020; --bad:#d4382c; --bad-ink:#c0352b; --bad-soft:#fde8e6;
+    --grid:#e2e2e8; --band:rgba(255,255,255,.7); --track:#e2e2e8; --flat-soft:#e9e9ee;
+    --r:16px; --r2:12px; --rb:9px; --shadow:0 1px 3px rgba(0,0,0,.05); --border:0 solid transparent;
+    --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    --display:var(--font); --num:var(--font); --num-w:700; --h-w:700;
+    --topbg:rgba(245,245,247,.88); --side-bg:#fff; --side:248px; --tip:#1d1d1f;
+  }
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.6 var(--font); -webkit-font-smoothing:antialiased; }
   .hide { display:none !important; }
-  .logo { font-size:17px; font-weight:800; letter-spacing:.5px; }
-  .logo span { color:var(--red); }
-  button, .btn { font:inherit; font-weight:600; border:0; border-radius:9px; padding:8px 16px; cursor:pointer; background:var(--red); color:#fff; text-decoration:none; white-space:nowrap; }
-  .btn.ghost, button.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
-  select { font:inherit; padding:6px 10px; border-radius:9px; border:1px solid var(--line); background:#fff; }
+  .ic { display:inline-block; width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; flex:none; vertical-align:-4px; }
+  .logo { display:flex; align-items:center; gap:9px; font-size:16px; font-weight:var(--h-w); letter-spacing:.5px; font-family:var(--display); }
+  .logo .ic { width:26px; height:26px; color:var(--accent); stroke-width:1.5; }
+  .logo span { color:var(--accent); }
+  .num { font-family:var(--num); font-variant-numeric:tabular-nums; }
+  button, .btn { font:inherit; font-weight:600; border:1px solid var(--accent); border-radius:var(--rb); padding:8px 16px; cursor:pointer; background:var(--accent); color:var(--on-accent); text-decoration:none; white-space:nowrap; display:inline-flex; align-items:center; gap:7px; }
+  .btn.ghost, button.ghost { background:transparent; color:var(--ink); border-color:var(--line); }
+  button .ic, .btn .ic { width:16px; height:16px; }
+  select { font:inherit; padding:6px 10px; border-radius:var(--rb); border:1px solid var(--line); background:var(--panel); color:var(--ink); }
+  .eb { display:none; }
 
   /* ---------- 导入页：左边说明，右边拖放区 ---------- */
-  #landing { min-height:100vh; display:grid; place-items:center; padding:40px; background:radial-gradient(1200px 600px at 80% 20%, #ffe3ea 0, transparent 60%), var(--bg); }
-  .land { width:min(1180px,100%); display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
-  .land h1 { font-size:42px; line-height:1.25; margin:18px 0 12px; letter-spacing:.5px; }
-  .lead { color:var(--sub); font-size:16px; margin:0 0 32px; }
-  .steps { margin:0; padding:0; list-style:none; counter-reset:s; display:grid; gap:16px; }
-  .steps li { counter-increment:s; display:grid; grid-template-columns:32px 1fr; gap:12px; color:var(--sub); }
-  .steps li::before { content:counter(s); width:32px; height:32px; border-radius:50%; background:var(--red); color:#fff; display:grid; place-items:center; font-weight:700; }
+  #landing { min-height:100vh; display:grid; place-items:center; padding:40px; background:var(--bg); }
+  .land { width:min(1180px,100%); display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; }
+  .land h1 { font-size:42px; line-height:1.25; margin:22px 0 14px; letter-spacing:.5px; font-family:var(--display); font-weight:var(--h-w); }
+  .lead { color:var(--sub); font-size:16px; margin:0 0 34px; }
+  .steps { margin:0; padding:0; list-style:none; counter-reset:s; display:grid; gap:18px; }
+  .steps li { counter-increment:s; display:grid; grid-template-columns:32px 1fr; gap:14px; color:var(--sub); }
+  .steps li::before { content:counter(s); width:32px; height:32px; border-radius:50%; border:1px solid var(--accent); color:var(--accent); display:grid; place-items:center; font-weight:600; font-family:var(--num); }
   .steps b { color:var(--ink); display:block; font-size:15px; }
-  #drop { border:2px dashed #d2d2d7; border-radius:20px; min-height:340px; display:grid; place-content:center; text-align:center; gap:6px; cursor:pointer; transition:.15s; background:#fff; padding:30px; box-shadow:0 10px 40px rgba(0,0,0,.05); }
-  #drop:hover, #drop.over { border-color:var(--red); background:#fff7f9; }
-  #drop .ic { font-size:44px; }
-  #drop .big { font-size:19px; font-weight:700; }
+  #drop { border:1.5px dashed var(--line); border-radius:var(--r); min-height:360px; display:grid; place-content:center; justify-items:center; text-align:center; gap:8px; cursor:pointer; transition:.2s; background:var(--panel); padding:30px; box-shadow:var(--shadow); }
+  #drop:hover, #drop.over { border-color:var(--accent); background:var(--accent-soft); }
+  #drop .ic { width:52px; height:52px; stroke-width:1.2; color:var(--accent); margin-bottom:8px; }
+  #drop .big { font-size:19px; font-weight:600; }
   #drop .small { color:var(--sub); font-size:13px; }
-  .privacy { font-size:13px; color:var(--sub); text-align:center; margin-top:12px; }
+  .privacy { font-size:13px; color:var(--sub); text-align:center; margin-top:14px; display:flex; justify-content:center; align-items:center; gap:6px; }
   .privacy a { color:var(--ink); }
-  .err { color:#c00; background:#fff0f0; border-radius:12px; padding:14px 18px; margin-top:14px; display:none; }
-  #prog { background:#fff; border-radius:20px; padding:28px; box-shadow:0 10px 40px rgba(0,0,0,.05); }
+  .err { color:var(--bad-ink); background:var(--bad-soft); border-radius:var(--r2); padding:14px 18px; margin-top:14px; display:none; }
+  #prog { background:var(--panel); border:var(--border); border-radius:var(--r); padding:28px; box-shadow:var(--shadow); }
   #prog h2 { margin:0; font-size:18px; }
-  .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin:16px 0 8px; }
-  .bar i { display:block; height:100%; width:0; background:var(--red); transition:width .2s; }
+  .bar { height:6px; background:var(--track); border-radius:3px; overflow:hidden; margin:16px 0 8px; }
+  .bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .2s; }
   #progText { font-size:13px; color:var(--sub); font-variant-numeric:tabular-nums; }
 
   /* ---------- 看板：左侧栏 + 右侧主区 ---------- */
   #result { display:grid; grid-template-columns:var(--side) 1fr; min-height:100vh; }
-  .side { position:sticky; top:0; height:100vh; background:#fff; border-right:1px solid var(--line); padding:22px 16px; display:flex; flex-direction:column; gap:22px; }
+  .side { position:sticky; top:0; height:100vh; background:var(--side-bg); border-right:1px solid var(--line); padding:24px 16px; display:flex; flex-direction:column; gap:26px; }
   .side nav { display:grid; gap:2px; }
-  .side nav a { padding:9px 12px; border-radius:9px; color:var(--ink); text-decoration:none; font-weight:500; }
-  .side nav a:hover { background:var(--bg); }
-  .side nav a.on { background:#ffe8ee; color:#d6204a; font-weight:700; }
+  .side nav a { display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:var(--rb); color:var(--sub); text-decoration:none; font-weight:500; transition:.15s; }
+  .side nav a:hover { color:var(--ink); background:var(--tile); }
+  .side nav a.on { background:var(--accent-soft); color:var(--accent-ink); font-weight:600; }
   .side-foot { margin-top:auto; display:grid; gap:14px; }
   .stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .stat { background:var(--bg); border-radius:10px; padding:8px 10px; }
-  .stat .v { font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .stat { background:var(--tile); border-radius:var(--r2); padding:8px 10px; }
+  .stat .v { font-size:16px; font-weight:var(--num-w); font-family:var(--num); font-variant-numeric:tabular-nums; }
   .stat .l { font-size:11px; color:var(--sub); }
   .memo { display:grid; gap:4px; font-size:12px; color:var(--sub); }
+  .memo span { display:flex; gap:6px; align-items:flex-start; }
+  .memo .ic { width:14px; height:14px; margin-top:2px; }
   .memo a { color:var(--ink); font-weight:600; }
 
   .main { min-width:0; padding:0 28px 40px; }
-  .top { position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:18px 0 14px; background:rgba(245,245,247,.88); backdrop-filter:blur(12px); }
-  .tt { font-size:22px; margin:0; }
+  .top { position:sticky; top:0; z-index:5; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:18px 0 14px; background:var(--topbg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  .tt { font-size:22px; margin:0; font-family:var(--display); font-weight:var(--h-w); }
   .top .sub { color:var(--sub); font-size:13px; }
   .tools { display:flex; align-items:center; gap:10px; }
   .range { display:flex; align-items:center; gap:8px; color:var(--sub); }
-  section.card { background:#fff; border-radius:16px; padding:20px 22px; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,.05); scroll-margin-top:80px; }
-  .sh { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
-  h2 { font-size:17px; margin:0; }
+  section.card { background:var(--panel); border:var(--border); border-radius:var(--r); padding:22px 24px; margin-bottom:18px; box-shadow:var(--shadow); scroll-margin-top:80px; }
+  .sh { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+  h2 { font-size:17px; margin:0; font-family:var(--display); font-weight:var(--h-w); }
   .cap { font-size:12px; color:var(--sub); }
   .duo { display:grid; grid-template-columns:2fr 1fr; gap:18px; }
   .duo:has(#sec-sleep.hide), .duo:has(#sec-train.hide) { grid-template-columns:1fr; }
-  .duo section.card { margin-bottom:18px; }
 
   /* 建议 */
   #advice h3 { font-size:13px; color:var(--sub); font-weight:600; margin:0 0 10px; }
-  .adv { display:grid; grid-template-columns:1fr 340px; gap:18px; }
+  .adv { display:grid; grid-template-columns:1fr 340px; gap:20px; align-items:start; }
+  .adv-main { display:grid; gap:18px; min-width:0; }
   .row3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
-  .ad { background:var(--bg); border-radius:12px; padding:14px 16px; border-left:4px solid #c7c7cc; }
-  .ad.bad { border-left-color:#d4382c; background:#fdf1f0; }
-  .ad.warn { border-left-color:#f0a020; }
-  .ad.pat { border-left-color:var(--blue); }
-  .adt { font-weight:700; font-size:15px; }
-  .adb { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .ad { background:var(--tile); border-radius:var(--r2); padding:16px 18px; border-left:3px solid var(--mute); }
+  .ad.bad { border-left-color:var(--bad); background:var(--bad-soft); }
+  .ad.warn { border-left-color:var(--warn); }
+  .ad.pat { border-left-color:var(--data); }
+  .adt { font-weight:600; font-size:15px; display:flex; align-items:center; gap:7px; }
+  .adt .ic { color:var(--data); }
+  .ad.bad .adt .ic { color:var(--bad); }
+  .adb { font-size:28px; font-weight:var(--num-w); font-family:var(--num); font-variant-numeric:tabular-nums; margin-top:4px; line-height:1.3; }
   .ads { font-size:12px; color:var(--sub); }
-  .ada { font-size:13px; margin-top:10px; }
-  .gg { position:relative; height:8px; background:#e2e2e8; border-radius:4px; margin:12px 0 24px; }
-  .gg i { position:absolute; left:0; top:0; bottom:0; background:#f0a020; border-radius:4px; }
-  .gg b { position:absolute; top:-4px; width:2px; height:16px; background:#1f9d55; }
-  .gg span { position:absolute; top:12px; transform:translateX(-50%); font-size:11px; color:#177a43; white-space:nowrap; }
-  .adv-side { display:grid; gap:16px; align-content:start; }
-  .li { display:grid; grid-template-columns:8px 1fr auto; gap:10px; align-items:center; padding:9px 12px; background:var(--bg); border-radius:10px; margin-bottom:6px; }
-  .li > i { width:8px; height:8px; border-radius:50%; background:#f0a020; }
-  .li.good > i { background:#1f9d55; }
-  .li b { display:block; font-size:13px; }
+  .ada { font-size:13px; margin-top:12px; display:flex; gap:7px; align-items:flex-start; }
+  .ada .ic { width:15px; height:15px; margin-top:2px; color:var(--accent); }
+  .gg { position:relative; height:6px; background:var(--track); border-radius:3px; margin:14px 0 24px; }
+  .gg i { position:absolute; left:0; top:0; bottom:0; background:var(--warn); border-radius:3px; }
+  .gg b { position:absolute; top:-5px; width:2px; height:16px; background:var(--good); }
+  .gg span { position:absolute; top:12px; transform:translateX(-50%); font-size:11px; color:var(--good-ink); white-space:nowrap; }
+  .adv-side { display:grid; gap:18px; align-content:start; }
+  .li { display:grid; grid-template-columns:8px 1fr auto; gap:10px; align-items:center; padding:10px 12px; background:var(--tile); border-radius:var(--r2); margin-bottom:6px; }
+  .li > i { width:7px; height:7px; border-radius:50%; background:var(--warn); }
+  .li.good > i { background:var(--good); }
+  .li b { display:block; font-size:13px; font-weight:600; }
   .li span { font-size:12px; color:var(--sub); }
-  .li em { font-style:normal; font-weight:700; font-variant-numeric:tabular-nums; }
-  .li.good em { color:#177a43; }
-  .pats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
+  .li em { font-style:normal; font-weight:var(--num-w); font-family:var(--num); font-variant-numeric:tabular-nums; }
+  .li.good em { color:var(--good-ink); }
+  .pats { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
   .pg { display:grid; grid-template-columns:auto 1fr 1fr; gap:6px 10px; align-items:center; margin-top:10px; font-size:13px; }
-  .pg .dl { display:block; font-size:11px; color:var(--blue); font-weight:700; }
-  .pg b { font-size:12px; color:var(--sub); font-weight:600; }
-  .pb { position:relative; height:22px; background:#e9e9ee; border-radius:5px; overflow:hidden; }
-  .pb i { position:absolute; left:0; top:0; bottom:0; background:#c7c7cc; }
-  .pb.win i { background:var(--blue); }
-  .pb em { position:absolute; left:8px; top:2px; font-style:normal; font-weight:700; font-size:12px; color:#fff; text-shadow:0 0 3px rgba(0,0,0,.35); }
+  .pg .dl { display:block; font-size:11px; color:var(--data); font-weight:600; }
+  .pg b { font-size:12px; color:var(--sub); font-weight:500; }
+  .pb { position:relative; height:22px; background:var(--track); border-radius:5px; overflow:hidden; }
+  .pb i { position:absolute; left:0; top:0; bottom:0; background:var(--mute); }
+  .pb.win i { background:var(--data); }
+  .pb em { position:absolute; left:8px; top:2px; font-style:normal; font-weight:600; font-size:12px; color:#fff; text-shadow:0 0 3px rgba(0,0,0,.3); font-family:var(--num); }
 
   /* 趋势 */
   .lg { display:inline-flex; align-items:center; gap:6px; margin-right:12px; }
   .lg i { display:inline-block; width:20px; }
-  .l-thick { border-top:3px solid var(--blue); }
-  .l-thin { border-top:1.5px solid rgba(47,111,219,.4); }
-  .l-dash { border-top:2px dashed #1f9d55; }
+  .l-thick { border-top:3px solid var(--data); }
+  .l-thin { border-top:1.5px solid var(--data); opacity:.4; }
+  .l-dash { border-top:2px dashed var(--good); }
   .trends { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-  .m { background:var(--bg); border-radius:12px; padding:14px 14px 6px; min-width:0; }
+  .m { background:var(--tile); border-radius:var(--r2); padding:16px 16px 6px; min-width:0; }
   .mh { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-  .mh b { font-size:15px; }
+  .mh b { font-size:15px; font-weight:600; }
   .u { font-size:12px; color:var(--sub); margin-left:6px; }
   .badge { font-size:12px; font-weight:600; padding:2px 9px; border-radius:20px; white-space:nowrap; }
-  .badge.good { background:#e3f4ea; color:#177a43; }
-  .badge.bad { background:#fde8e6; color:#c0352b; }
-  .badge.flat { background:#e9e9ee; color:#5b5b60; }
-  .big { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; margin:4px 0 2px; line-height:1.3; }
-  .big span { font-size:12px; font-weight:400; color:var(--sub); margin-left:6px; }
-  .big small { display:block; font-size:12px; font-weight:400; color:var(--sub); }
+  .badge.good { background:var(--good-soft); color:var(--good-ink); }
+  .badge.bad { background:var(--bad-soft); color:var(--bad-ink); }
+  .badge.flat { background:var(--flat-soft); color:var(--sub); }
+  .big { font-size:28px; font-weight:var(--num-w); font-family:var(--num); font-variant-numeric:tabular-nums; margin:6px 0 2px; line-height:1.3; }
+  .big span { font-size:12px; font-weight:400; color:var(--sub); margin-left:6px; font-family:var(--font); }
+  .big small { display:block; font-size:12px; font-weight:400; color:var(--sub); font-family:var(--font); }
   .plot, #sleepPlot { width:100%; }
   svg { display:block; overflow:visible; }
-  svg .ax { font-size:11px; fill:#86868b; }
-  svg .yr { font-size:12px; font-weight:700; fill:#1d1d1f; }
-  svg .nd { font-size:12px; fill:#aeaeb2; }
-  .tgl { font-size:12px; color:#177a43; display:flex; align-items:center; gap:6px; margin-top:2px; }
-  .tgl i { width:18px; border-top:2px dashed #1f9d55; }
+  svg .ax { font-size:11px; fill:var(--sub); font-family:var(--font); }
+  svg .yr { font-size:12px; font-weight:600; fill:var(--ink); font-family:var(--num); }
+  svg .nd { font-size:12px; fill:var(--mute); }
+  .tgl { font-size:12px; color:var(--good-ink); display:flex; align-items:center; gap:6px; margin-top:2px; }
+  .tgl i { width:18px; border-top:2px dashed var(--good); }
 
   /* 训练 */
   .tr { display:grid; grid-template-columns:92px 1fr auto; align-items:center; gap:10px; padding:6px 0; font-size:13px; }
-  .tb { height:12px; background:var(--bg); border-radius:6px; overflow:hidden; }
-  .tb i { display:block; height:100%; background:var(--blue); border-radius:6px; }
+  .tb { height:10px; background:var(--tile); border-radius:5px; overflow:hidden; }
+  .tb i { display:block; height:100%; background:var(--data); border-radius:5px; }
   .tv { color:var(--sub); font-size:12px; font-variant-numeric:tabular-nums; }
-  .tv b { color:var(--ink); }
+  .tv b { color:var(--ink); font-family:var(--num); }
 
   /* AI */
   .ai { display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center; }
@@ -141,8 +161,8 @@
   .opts label { display:flex; align-items:center; gap:6px; cursor:pointer; }
   details { margin-top:14px; }
   summary { cursor:pointer; color:var(--sub); margin-bottom:12px; }
-  textarea { width:100%; height:320px; font:12px/1.5 ui-monospace,Menlo,monospace; border:1px solid var(--line); border-radius:12px; padding:12px; resize:vertical; background:#fafafa; color:var(--ink); }
-  #tip { position:fixed; display:none; pointer-events:none; background:#1d1d1f; color:#fff; font-size:12px; line-height:1.6; padding:7px 11px; border-radius:8px; z-index:9; box-shadow:0 4px 14px rgba(0,0,0,.18); }
+  textarea { width:100%; height:320px; font:12px/1.5 ui-monospace,Menlo,monospace; border:1px solid var(--line); border-radius:var(--r2); padding:12px; resize:vertical; background:var(--tile); color:var(--ink); }
+  #tip { position:fixed; display:none; pointer-events:none; background:var(--tip); color:#fff; font-size:12px; line-height:1.6; padding:7px 11px; border-radius:8px; z-index:9; box-shadow:0 4px 14px rgba(0,0,0,.18); }
 
   /* 窄屏退回单栏 */
   @media (max-width:1100px) {
@@ -156,13 +176,35 @@
     .main { padding:0 14px 30px; }
   }
 </style>
+<!--THEME-->
 </head>
 <body>
+<!-- 自己画的线条图标，currentColor 跟随文字颜色 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M5.5 12.5h2.8l1.7-3.6 3.1 7.4 1.8-3.8h3.6"/></symbol>
+  <symbol id="i-advice" viewBox="0 0 24 24"><path d="M11 3.5l1.8 4.9 4.9 1.8-4.9 1.8L11 16.9l-1.8-4.9-4.9-1.8 4.9-1.8z"/><path d="M18 15.5v5M15.5 18h5"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="M7.5 15.5l3.5-4.2 3 2.6 5-6.4"/><path d="M15.4 7.5H19v3.6"/></symbol>
+  <symbol id="i-sleep" viewBox="0 0 24 24"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/><path d="M15.5 4h3.5l-3.5 4h3.5"/></symbol>
+  <symbol id="i-train" viewBox="0 0 24 24"><path d="M12 3.5A8.5 8.5 0 1 1 3.5 12"/><path d="M12 7.2A4.8 4.8 0 1 1 7.2 12"/><circle cx="12" cy="12" r="1.2"/></symbol>
+  <symbol id="i-ai" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.7 7.1L4 20l1-4.1A8 8 0 1 1 20 12z"/><path d="M12 8.2l.9 2.5 2.5.9-2.5.9-.9 2.5-.9-2.5-2.5-.9 2.5-.9z"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M3.5 8L12 3.5 20.5 8v8L12 20.5 3.5 16z"/><path d="M3.5 8L12 12.5 20.5 8M12 12.5v8"/><path d="M7.8 5.8l8.4 4.5"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2.2"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.6"/><path d="M5 6v12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V6M5 12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4.2M12 16.9v.1"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24"><path d="M5 12h13M13 7l5 5-5 5"/></symbol>
+  <symbol id="i-pattern" viewBox="0 0 24 24"><path d="M4 20h16M7.5 20v-6M11.5 20V8M15.5 20v-8.5M19 20V5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6A1.5 1.5 0 0 0 14 4.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M10.5 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4.5"/><path d="M14 4h6v6M20 4l-9 9"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H6M11 7l-5 5 5 5"/></symbol>
+</defs></svg>
+
 <!-- 导入页 -->
 <div id="landing">
   <div class="land">
     <div>
-      <div class="logo">健康数据<span>压缩器</span></div>
+      <div class="logo"><svg class="ic"><use href="#i-logo"/></svg><div>健康数据<span>压缩器</span></div></div>
       <h1>几年的 Apple 健康数据<br>一页看懂</h1>
       <p class="lead">自动画图、给建议，还能一键交给 DeepSeek 解读。</p>
       <ol class="steps">
@@ -174,13 +216,13 @@
     <div>
       <div id="pick">
         <div id="drop">
-          <div class="ic">📦</div>
+          <svg class="ic"><use href="#i-box"/></svg>
           <div class="big">把「导出.zip」拖到这里，或点击选择</div>
           <div class="small">也可以选解压后的 export.xml · 1GB 大约 1 分钟</div>
         </div>
         <input type="file" id="file" accept=".zip,.xml" hidden>
-        <div class="privacy">🔒 文件不会上传到任何地方（不放心可以断网再用）</div>
-        <div class="privacy hide" id="back"><a href="#" id="backLink">← 不换了，回到上次的看板</a></div>
+        <div class="privacy"><svg class="ic"><use href="#i-lock"/></svg>文件不会上传到任何地方（不放心可以断网再用）</div>
+        <div class="privacy hide" id="back"><a href="#" id="backLink"><svg class="ic"><use href="#i-back"/></svg> 不换了，回到上次的看板</a></div>
       </div>
       <div class="hide" id="prog">
         <h2>正在读取…</h2>
@@ -195,13 +237,13 @@
 <!-- 看板 -->
 <div id="result" class="hide">
   <aside class="side">
-    <div class="logo">健康数据<span>压缩器</span></div>
+    <div class="logo"><svg class="ic"><use href="#i-logo"/></svg><div>健康数据<span>压缩器</span></div></div>
     <nav id="nav">
-      <a href="#sec-advice" class="on">💡 给你的建议</a>
-      <a href="#sec-trend">📈 这几年的变化</a>
-      <a href="#sec-sleep">🌙 几点睡几点醒</a>
-      <a href="#sec-train">🏃 常做的训练</a>
-      <a href="#sec-ai">🤖 让 AI 解读</a>
+      <a href="#sec-advice" class="on"><svg class="ic"><use href="#i-advice"/></svg><span>给你的建议</span></a>
+      <a href="#sec-trend"><svg class="ic"><use href="#i-trend"/></svg><span>这几年的变化</span></a>
+      <a href="#sec-sleep"><svg class="ic"><use href="#i-sleep"/></svg><span>几点睡几点醒</span></a>
+      <a href="#sec-train"><svg class="ic"><use href="#i-train"/></svg><span>常做的训练</span></a>
+      <a href="#sec-ai"><svg class="ic"><use href="#i-ai"/></svg><span>让 AI 解读</span></a>
     </nav>
     <div class="side-foot">
       <div class="stats" id="stats"></div>
@@ -211,46 +253,46 @@
 
   <main class="main">
     <header class="top">
-      <div><h1 class="tt">我的健康看板</h1><div class="sub" id="who"></div></div>
+      <div><div class="eb">Health Report</div><h1 class="tt">我的健康看板</h1><div class="sub" id="who"></div></div>
       <div class="tools">
         <label class="range">时间范围 <select id="optRange">
           <option value="0">全部</option><option value="3">最近 3 年</option>
           <option value="2">最近 2 年</option><option value="1">最近 1 年</option>
         </select></label>
-        <button id="copyTop">复制给 AI</button>
-        <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek ↗</a>
+        <button id="copyTop"><svg class="ic"><use href="#i-copy"/></svg>复制给 AI</button>
+        <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek<svg class="ic"><use href="#i-ext"/></svg></a>
       </div>
     </header>
 
     <section class="card" id="sec-advice">
-      <div class="sh"><h2>给你的建议</h2><span class="cap">按你的数据和常见健康建议自动算出，不联网，不是医疗诊断</span></div>
+      <div class="sh"><div class="eb">01 · Advice</div><h2>给你的建议</h2><span class="cap">按你的数据和常见健康建议自动算出，不联网，不是医疗诊断</span></div>
       <div id="advice"></div>
     </section>
 
     <section class="card" id="sec-trend">
-      <div class="sh"><h2>这几年的变化</h2>
+      <div class="sh"><div class="eb">02 · Trends</div><h2>这几年的变化</h2>
         <span class="cap"><span class="lg"><i class="l-thick"></i>走势（3 个月平均）</span><span class="lg"><i class="l-thin"></i>每月</span><span class="lg"><i class="l-dash"></i>建议值</span>图下数字 = 全年平均 · 鼠标移上去看每个月</span></div>
       <div class="trends" id="trends"></div>
     </section>
 
     <div class="duo">
       <section class="card" id="sec-sleep">
-        <div class="sh"><h2>几点睡、几点醒</h2><span class="cap">每根柱子 = 那个月平均从几点睡到几点醒，越整齐越规律</span></div>
+        <div class="sh"><div class="eb">03 · Sleep</div><h2>几点睡、几点醒</h2><span class="cap">每根柱子 = 那个月平均从几点睡到几点醒，越整齐越规律</span></div>
         <div id="sleepPlot"></div>
       </section>
       <section class="card" id="sec-train">
-        <div class="sh"><h2>常做的训练</h2></div>
+        <div class="sh"><div class="eb">04 · Training</div><h2>常做的训练</h2></div>
         <div id="train"></div>
       </section>
     </div>
 
     <section class="card" id="sec-ai">
       <div class="ai">
-        <div><h2>让 AI 帮你解读</h2><div class="cap">上面的数据已经整理成一段文字，复制后粘贴给 DeepSeek，它会按固定格式写解读</div></div>
+        <div><div class="eb">05 · AI</div><h2>让 AI 帮你解读</h2><div class="cap">上面的数据已经整理成一段文字，复制后粘贴给 DeepSeek，它会按固定格式写解读</div></div>
         <div class="btns">
-          <button id="copy">复制给 AI 的文字</button>
-          <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek ↗</a>
-          <button class="ghost" id="save">下载为 txt</button>
+          <button id="copy"><svg class="ic"><use href="#i-copy"/></svg>复制给 AI 的文字</button>
+          <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek<svg class="ic"><use href="#i-ext"/></svg></a>
+          <button class="ghost" id="save"><svg class="ic"><use href="#i-down"/></svg>下载为 txt</button>
         </div>
       </div>
       <details>
@@ -746,6 +788,7 @@ const HD = (() => {
 
 <script>
 const $ = id => document.getElementById(id);
+const ico = n => `<svg class="ic"><use href="#i-${n}"/></svg>`;
 let R = null, REP = null;
 
 const ERR = {
@@ -796,8 +839,8 @@ function recall() {
 
 function showResult() {
   $('memo').innerHTML = (R.saved === false
-    ? '<span>⚠️ 这次的结果太大或浏览器不允许保存，下次打开需要重新导入</span>'
-    : `<span>💾 已记住 ${R.savedAt} 读取的数据，下次打开直接显示</span>`) +
+    ? '<span>' + ico('warn') + '这次的结果太大或浏览器不允许保存，下次打开需要重新导入</span>'
+    : `<span>${ico('save')}已记住 ${R.savedAt} 读取的数据，下次打开直接显示</span>`) +
     '<a href="#" id="newFile">导入新的导出包</a>' + (R.saved === false ? '' : '<a href="#" id="forget">清除记录</a>');
   $('newFile').onclick = newFile;
   function newFile(e) {
@@ -833,7 +876,12 @@ function showResult() {
 }
 
 // ---------- 图 ----------
-const INK = '#1d1d1f', SUB = '#86868b', GRID = '#e2e2e8', LINE = '#2f6fdb', GOOD = '#1f9d55';
+// 图的颜色跟着主题变量走
+let SUB, GRID, LINE, GOOD, BAND;
+function readColors() {
+  const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
+  SUB = v('--sub'); GRID = v('--grid'); LINE = v('--data'); GOOD = v('--good'); BAND = v('--band');
+}
 const COL = Object.fromEntries(HD.COLS.map(c => [c.k, c]));
 // dir：1 越高越好，-1 越低越好，0 只说升降不评判
 // span：纵轴最少要覆盖的范围，免得 6.3→6.5 小时这种小波动被拉成大起大落
@@ -893,7 +941,7 @@ function yearBands(months, x, cellW, top, bottom, H, c) {
     const idx = months.map((o, i) => o.key.startsWith(yr.key) ? i : -1).filter(i => i >= 0);
     if (!idx.length) continue;
     const x0 = x(idx[0]) - cellW / 2, x1 = x(idx[idx.length - 1]) + cellW / 2, cx = (x0 + x1) / 2;
-    if (band++ % 2 === 0) s += `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${bottom - top}" fill="#fff" opacity=".7"/>`;
+    if (band++ % 2 === 0) s += `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${bottom - top}" fill="${BAND}"/>`;
     if (x1 - x0 < 26) continue;
     s += `<text x="${cx}" y="${bottom + 14}" text-anchor="middle" class="ax">${yr.key}</text>`;
     if (c && yr[c.k] != null && x1 - x0 >= 34) s += `<text x="${cx}" y="${bottom + 30}" text-anchor="middle" class="yr">${HD.fmt(c, yr[c.k])}</text>`;
@@ -939,7 +987,7 @@ function lineChart(box, all, c, span, target, targetLabel) {
     if (v != null && sm[i - 1] == null && sm[i + 1] == null) s += `<circle cx="${x(i)}" cy="${y(v)}" r="3.2" fill="${LINE}"/>`;
   });
   s += `<line class="guide" y1="${T}" y2="${H - B}" stroke="${SUB}" stroke-dasharray="2 2" visibility="hidden"/>`;
-  s += `<circle class="dot" r="4.5" fill="${LINE}" stroke="#fff" stroke-width="2" visibility="hidden"/>`;
+  s += `<circle class="dot" r="4.5" fill="${LINE}" stroke="var(--panel)" stroke-width="2" visibility="hidden"/>`;
   s += `<rect class="hit" x="${L}" y="0" width="${W - L - RR}" height="${H}" fill="transparent"/>`;
   box.innerHTML = `<svg width="${W}" height="${H}">${s}</svg>`;
 
@@ -1134,24 +1182,25 @@ function drawAdvice() {
   const todo = items.filter(o => o.lv !== 'good').sort((a, b) => b.score - a.score);
   const good = items.filter(o => o.lv === 'good');
   const card = o => `<div class="ad ${o.lv}">
-    <div class="adt">${o.lv === 'bad' ? '⚠️ ' : ''}${o.title}</div>
+    <div class="adt">${o.lv === 'bad' ? ico('warn') : ''}${o.title}</div>
     <div class="adb">${o.big}</div>${o.sub ? `<div class="ads">${o.sub}</div>` : ''}
     ${o.gauge ? gauge(...o.gauge) : ''}
-    <div class="ada">👉 ${o.act}</div></div>`;
-  const pat = p => `<div class="ad pat"><div class="adt">📊 ${p.title}</div><div class="ads">${p.note}</div>
+    <div class="ada">${ico('go')}<span>${o.act}</span></div></div>`;
+  const pat = p => `<div class="ad pat"><div class="adt">${ico('pattern')}${p.title}</div><div class="ads">${p.note}</div>
     <div class="pg"><span></span><b>${p.la}</b><b>${p.lb}</b>${p.rows.map(r => {
       const max = Math.max(r.a, r.b);
-      const d = r.a - r.b, word = d > 0 ? '高 ' : '低 ';
-      return `<span>${r.c.label}<small class="dl">${word}${HD.fmt(r.c, Math.abs(d))}</small></span>${[r.a, r.b].map((v, j) => `<div class="pb ${(j === 0) === r.good ? 'win' : ''}"><i style="width:${(v / max * 100).toFixed(0)}%"></i><em>${HD.fmt(r.c, v)}</em></div>`).join('')}`;
+      const d = r.a - r.b, same = +HD.fmt(r.c, Math.abs(d)) === 0, word = same ? '差不多' : (d > 0 ? '高 ' : '低 ') + HD.fmt(r.c, Math.abs(d));
+      return `<span>${r.c.label}<small class="dl">${word}</small></span>${[r.a, r.b].map((v, j) => `<div class="pb ${!same && (j === 0) === r.good ? 'win' : ''}"><i style="width:${(v / max * 100).toFixed(0)}%"></i><em>${HD.fmt(r.c, v)}</em></div>`).join('')}`;
     }).join('')}</div></div>`;
   const li = o => `<div class="li ${o.lv === 'good' ? 'good' : ''}"><i></i><div><b>${o.title}</b><span>${o.lv === 'good' ? (o.sub || '') : o.act}</span></div><em>${o.big}</em></div>`;
-  const main = todo.length
+  // 规律卡片放在大卡片下面，和右边的列表一起把高度填满
+  const main = `<div class="adv-main">` + (todo.length
     ? `<div><h3>先改这 ${Math.min(3, todo.length)} 件事</h3><div class="row3">${todo.slice(0, 3).map(card).join('')}</div></div>`
-    : `<div><h3>没有明显要改的</h3><p class="cap">各项都在建议范围内，继续保持。</p></div>`;
+    : `<div><h3>没有明显要改的</h3><p class="cap">各项都在建议范围内，继续保持。</p></div>`) +
+    (pats.length ? `<div><h3>从你自己数据里看出的规律</h3><div class="pats">${pats.map(pat).join('')}</div></div>` : '') + '</div>';
   const side = (todo.length > 3 ? `<div><h3>其次</h3>${todo.slice(3).map(li).join('')}</div>` : '') +
     (good.length ? `<div><h3>做得好的</h3>${good.map(li).join('')}</div>` : '');
-  let h = side ? `<div class="adv">${main}<div class="adv-side">${side}</div></div>` : main;
-  if (pats.length) h += `<div class="pats">${pats.map(pat).join('')}</div>`;
+  const h = side ? `<div class="adv">${main}<div class="adv-side">${side}</div></div>` : main;
   $('advice').innerHTML = items.length ? h : '<p class="cap">数据太少，暂时给不出建议。</p>';
 }
 
@@ -1171,6 +1220,7 @@ function drawTraining() {
 }
 
 function render() {
+  readColors();
   REP = HD.report(R, +$('optRange').value);
   drawTrends();
   drawSleep();
@@ -1194,14 +1244,14 @@ $('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over')
 $('optRange').onchange = render;
 for (const id of ['optGran', 'optFull', 'optProfile', 'optPrompt']) $(id).onchange = refreshText;
 let rz;
-addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (REP) { drawTrends(); drawSleep(); } }, 150); });
+addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (REP) { readColors(); drawTrends(); drawSleep(); } }, 150); });
 
 for (const id of ['copy', 'copyTop']) $(id).onclick = async () => {
-  const t = $('out').value, b = $(id), label = b.textContent;
+  const t = $('out').value, b = $(id), label = b.innerHTML;
   try { await navigator.clipboard.writeText(t); }
   catch { $('out').select(); document.execCommand('copy'); }
-  b.textContent = '已复制 ✓';
-  setTimeout(() => b.textContent = label, 1500);
+  b.innerHTML = ico('check') + '已复制';
+  setTimeout(() => b.innerHTML = label, 1500);
 };
 $('save').onclick = () => {
   const a = document.createElement('a');

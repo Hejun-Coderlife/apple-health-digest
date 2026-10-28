@@ -1,0 +1,35 @@
+/* 款式 2 · 冰川：冷白渐变底 + 毛玻璃卡片，靛蓝点缀，悬浮侧栏 */
+:root {
+  --bg:#eef2f8; --panel:rgba(255,255,255,.62); --tile:rgba(255,255,255,.66); --ink:#0f1a2e; --sub:#61708a; --mute:#b7c0d0; --line:rgba(15,26,46,.09);
+  --accent:#3555d6; --on-accent:#fff; --accent-soft:rgba(53,85,214,.1); --accent-ink:#2c47b8;
+  --data:#3555d6; --good:#159a76; --good-ink:#0f7a5d; --good-soft:rgba(21,154,118,.12); --warn:#e29a3a; --bad:#d94848; --bad-ink:#b83434; --bad-soft:rgba(217,72,72,.09);
+  --grid:rgba(15,26,46,.07); --band:rgba(255,255,255,.55); --track:rgba(15,26,46,.08); --flat-soft:rgba(15,26,46,.06);
+  --r:24px; --r2:16px; --rb:12px; --shadow:0 12px 40px rgba(30,50,110,.07), inset 0 1px 0 rgba(255,255,255,.9); --border:1px solid rgba(255,255,255,.8);
+  --display:"Avenir Next","PingFang SC",sans-serif; --num:"Avenir Next","SF Pro Display",sans-serif; --num-w:500; --h-w:600;
+  --topbg:rgba(238,242,248,.55); --side-bg:rgba(255,255,255,.55); --tip:#0f1a2e; --side:264px;
+}
+body { background:
+  radial-gradient(900px 600px at 0% 0%, #dde6ff 0, transparent 60%),
+  radial-gradient(800px 600px at 100% 10%, #efe4fb 0, transparent 60%),
+  radial-gradient(900px 700px at 60% 100%, #dcf1ee 0, transparent 60%), var(--bg); background-attachment:fixed; }
+section.card, .side, #drop, #prog { backdrop-filter:blur(26px) saturate(1.5); -webkit-backdrop-filter:blur(26px) saturate(1.5); }
+.eb { display:block; width:100%; font:600 11px/1 "Avenir Next",sans-serif; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); opacity:.8; }
+button, .btn { background:linear-gradient(135deg,#4a6cf0,#2c47b8); border:0; box-shadow:0 8px 20px -6px rgba(53,85,214,.55); }
+.btn.ghost, button.ghost { background:rgba(255,255,255,.7); border:1px solid rgba(255,255,255,.9); box-shadow:0 2px 8px rgba(30,50,110,.06); }
+#result { padding:0; }
+.side { margin:16px 0 16px 16px; height:calc(100vh - 32px); top:16px; border:var(--border); border-radius:var(--r); box-shadow:var(--shadow); padding:26px 16px; }
+.side nav a { padding:10px 12px; }
+.side nav a.on { background:#fff; color:var(--accent-ink); box-shadow:0 4px 14px rgba(30,50,110,.08); }
+.stat { background:rgba(255,255,255,.6); }
+.main { padding:0 28px 40px 24px; }
+.top { padding:24px 0 16px; }
+.tt { font-size:26px; letter-spacing:.02em; }
+section.card { padding:26px 28px; margin-bottom:20px; }
+h2 { font-size:19px; }
+.ad { border:1px solid rgba(255,255,255,.9); border-left:3px solid var(--mute); }
+.ad.warn { border-left-color:var(--warn); } .ad.bad { border-left-color:var(--bad); } .ad.pat { border-left-color:var(--data); }
+.m { border:1px solid rgba(255,255,255,.9); }
+.big, .adb { letter-spacing:-.01em; }
+.tb i, .pb.win i, .bar i { background:linear-gradient(90deg,#6f8cff,#3555d6); }
+.land h1 { font-size:48px; letter-spacing:.01em; }
+#drop { border:1.5px dashed rgba(53,85,214,.35); }

@@ -1,0 +1,46 @@
+/* 款式 1 · 珍珠：象牙白 + 香槟金，宋体标题，Didot 数字，发丝线，不要阴影 */
+:root {
+  --bg:#f7f4ee; --panel:#fffdf9; --tile:#f6f1e8; --ink:#1f1b16; --sub:#8b8276; --mute:#cdc3b2; --line:#e8dfcf;
+  --accent:#1f1b16; --on-accent:#f7f4ee; --accent-soft:#f1e8d8; --accent-ink:#8a6a3b;
+  --data:#a8844f; --good:#5f7f5f; --good-ink:#4c6a4c; --good-soft:#e9eee3; --warn:#c79a55; --bad:#a0473a; --bad-ink:#8e3b30; --bad-soft:#f7ebe6;
+  --grid:#eee6d8; --band:rgba(255,255,255,.6); --track:#ece4d6; --flat-soft:#f0ebe2;
+  --r:4px; --r2:2px; --rb:0; --shadow:none; --border:1px solid var(--line);
+  --display:"Songti SC","STSong","Noto Serif SC",serif; --num:"Didot","Bodoni 72",serif; --num-w:400; --h-w:600;
+  --topbg:rgba(247,244,238,.92); --side-bg:#fffdf9; --tip:#1f1b16; --side:240px;
+}
+body { letter-spacing:.02em; }
+.eb { display:block; width:100%; font:500 10px/1 "Avenir Next","Helvetica Neue",sans-serif; letter-spacing:.32em; text-transform:uppercase; color:var(--accent-ink); margin-bottom:2px; }
+.logo { font-weight:600; }
+.logo span, .logo .ic { color:var(--data); }
+button, .btn { letter-spacing:.12em; font-weight:500; padding:9px 20px; }
+.btn.ghost, button.ghost { border-color:var(--ink); }
+.side { padding:34px 22px; }
+.side nav a { border-radius:0; padding:10px 0 10px 14px; border-left:1px solid transparent; letter-spacing:.06em; }
+.side nav a:hover { background:none; }
+.side nav a.on { background:none; color:var(--ink); border-left-color:var(--data); }
+.side nav a.on .ic { color:var(--data); }
+.stat { background:none; border-top:1px solid var(--line); border-radius:0; padding:8px 0; }
+.stat .v { font-size:20px; }
+.main { padding:0 44px 56px; }
+.top { padding:30px 0 22px; border-bottom:1px solid var(--line); margin-bottom:26px; }
+.tt { font-size:30px; font-weight:500; letter-spacing:.08em; }
+section.card { padding:34px 36px; margin-bottom:26px; }
+h2 { font-size:22px; font-weight:500; letter-spacing:.06em; }
+.sh { margin-bottom:24px; }
+.ad { background:var(--panel); border:1px solid var(--line); border-top:2px solid var(--mute); padding:20px 22px; }
+.ad.warn { border-top-color:var(--warn); }
+.ad.bad { border-top-color:var(--bad); background:var(--bad-soft); }
+.ad.pat { border-top-color:var(--data); }
+.adt { font-family:var(--display); font-size:16px; font-weight:500; }
+.adb { font-size:38px; }
+.li { background:none; border-bottom:1px solid var(--line); border-radius:0; padding:12px 2px; margin:0; }
+.m { background:var(--panel); border:1px solid var(--line); padding:20px 20px 8px; }
+.mh b { font-family:var(--display); font-weight:500; font-size:16px; }
+.big { font-size:36px; }
+.badge { border-radius:0; letter-spacing:.06em; font-weight:500; }
+.trends { gap:16px; }
+.tb { height:4px; } .tb i { border-radius:0; }
+.pb { border-radius:0; height:20px; }
+#landing { background:radial-gradient(900px 520px at 78% 30%, #efe3cc 0, transparent 65%), var(--bg); }
+.land h1 { font-size:50px; font-weight:500; letter-spacing:.06em; }
+#drop { border:1px solid var(--line); outline:1px solid var(--line); outline-offset:-12px; }

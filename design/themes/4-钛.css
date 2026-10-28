@@ -1,0 +1,50 @@
+/* 款式 4 · 钛：银灰金属 + 点阵底纹，等宽数字，图标竖栏，像精密仪表 */
+:root {
+  --bg:#e8eaed; --panel:#f8f9fa; --tile:#eff1f3; --ink:#14171b; --sub:#646b74; --mute:#b6bcc4; --line:#d3d7dc;
+  --accent:#14171b; --on-accent:#fff; --accent-soft:#dfe2e6; --accent-ink:#14171b;
+  --data:#078a8c; --good:#2c9361; --good-ink:#1f7a4e; --good-soft:#dcefe4; --warn:#d08a2c; --bad:#cc4a3b; --bad-ink:#b13b2d; --bad-soft:#f6e3df;
+  --grid:#dde0e4; --band:rgba(255,255,255,.75); --track:#dde0e4; --flat-soft:#e3e6e9;
+  --r:12px; --r2:8px; --rb:8px; --shadow:inset 0 1px 0 #fff, 0 1px 2px rgba(20,23,27,.06), 0 10px 30px -12px rgba(20,23,27,.12); --border:1px solid #d3d7dc;
+  --display:"Avenir Next","PingFang SC",sans-serif; --num:"SF Mono",ui-monospace,Menlo,monospace; --num-w:500; --h-w:600;
+  --topbg:rgba(232,234,237,.82); --side-bg:linear-gradient(#fbfbfc,#eef0f2); --tip:#14171b; --side:96px;
+}
+body { background:radial-gradient(#c9ced5 1px, transparent 1.2px) 0 0/22px 22px, var(--bg); background-attachment:fixed; }
+.eb { display:block; width:100%; font:500 11px/1 "SF Mono",ui-monospace,monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--data); }
+.eb::before { content:"// "; color:var(--mute); }
+button, .btn { background:linear-gradient(#2c3239,#14171b); box-shadow:inset 0 1px 0 rgba(255,255,255,.15), 0 2px 6px rgba(20,23,27,.2); }
+.btn.ghost, button.ghost { background:linear-gradient(#fff,#eef0f2); border-color:#cfd3d8; box-shadow:inset 0 1px 0 #fff, 0 1px 2px rgba(20,23,27,.06); }
+/* 图标竖栏 */
+.side { padding:20px 10px; align-items:center; gap:24px; box-shadow:inset -1px 0 0 #fff; }
+.side .logo > div { display:none; }
+.side .logo .ic { width:32px; height:32px; color:var(--data); }
+.side nav { gap:6px; width:100%; }
+.side nav a { flex-direction:column; gap:4px; padding:10px 2px; font-size:11px; text-align:center; line-height:1.3; }
+.side nav a .ic { width:22px; height:22px; }
+.side nav a.on { background:#fff; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line), 0 2px 6px rgba(20,23,27,.06); }
+.side nav a.on .ic { color:var(--data); }
+.side-foot { width:100%; }
+.stats { grid-template-columns:1fr; gap:4px; }
+.stat { background:none; padding:4px 2px; text-align:center; border-top:1px solid var(--line); border-radius:0; }
+.stat .v { font-size:12px; } .stat .l { font-size:10px; }
+.memo { text-align:center; font-size:10px; line-height:1.4; }
+.memo > span { display:none; }
+.main { padding:0 32px 40px; }
+.top { padding:20px 0 16px; }
+.tt { font-size:24px; letter-spacing:.02em; }
+section.card { background:linear-gradient(#fdfdfe,#f6f7f8); padding:22px 24px; }
+.sh { padding-bottom:12px; border-bottom:1px solid var(--line); }
+h2 { font-size:17px; }
+.ad { background:#fff; border:1px solid var(--line); border-left:3px solid var(--mute); }
+.ad.warn { border-left-color:var(--warn); } .ad.bad { border-left-color:var(--bad); } .ad.pat { border-left-color:var(--data); }
+.adb, .big { font-size:26px; letter-spacing:-.02em; }
+.li { background:#fff; border:1px solid var(--line); }
+.m { background:#fff; border:1px solid var(--line); box-shadow:inset 0 1px 0 #fff; }
+.badge { border-radius:4px; font-family:var(--num); font-size:11px; }
+.tb { height:6px; border-radius:1px; } .tb i { border-radius:1px; }
+.pb { border-radius:3px; }
+#landing { background:radial-gradient(#c9ced5 1px, transparent 1.2px) 0 0/22px 22px, var(--bg); }
+.land h1 { font-size:46px; letter-spacing:.01em; }
+.steps li::before { border-radius:6px; background:#fff; border-color:var(--line); color:var(--data); }
+#drop { border:1px dashed #b6bcc4; background:linear-gradient(#fdfdfe,#f3f4f6); }
+#drop .ic { color:var(--data); }
+@media (max-width:1100px) { .side .logo > div { display:block; } .side nav a { flex-direction:row; } }

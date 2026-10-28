@@ -1,0 +1,62 @@
+/* 款式 3 · 刊：黑白杂志排版。无卡片，用黑色细线分区；顶部横向导航；宋体大标题 + 极细大数字 */
+:root {
+  --bg:#faf9f6; --panel:#faf9f6; --tile:transparent; --ink:#111; --sub:#7a766e; --mute:#cbc6bc; --line:#e2ded6;
+  --accent:#111; --on-accent:#faf9f6; --accent-soft:transparent; --accent-ink:#111;
+  --data:#111; --good:#3d6f50; --good-ink:#3d6f50; --good-soft:transparent; --warn:#b5843a; --bad:#9b2f2f; --bad-ink:#9b2f2f; --bad-soft:#f5ebe7;
+  --grid:#ebe7e0; --band:rgba(0,0,0,.025); --track:#e6e2da; --flat-soft:transparent;
+  --r:0; --r2:0; --rb:0; --shadow:none; --border:0 solid transparent;
+  --display:"Songti SC","STSong","Noto Serif SC",serif; --num:"Helvetica Neue","Avenir Next",sans-serif; --num-w:200; --h-w:400;
+  --topbg:rgba(250,249,246,.94); --side-bg:rgba(250,249,246,.94); --tip:#111;
+}
+.eb { display:block; width:100%; font:500 11px/1 "Helvetica Neue",sans-serif; letter-spacing:.34em; text-transform:uppercase; color:var(--sub); margin-bottom:8px; }
+button, .btn { letter-spacing:.14em; font-weight:500; padding:10px 22px; }
+.btn.ghost, button.ghost { border-color:#111; }
+/* 侧栏改成顶部横条 */
+#result { display:block; }
+.side { position:sticky; top:0; z-index:6; height:64px; flex-direction:row; align-items:center; gap:48px; padding:0 56px; border-right:0; border-bottom:1px solid #111; backdrop-filter:blur(10px); }
+.side .logo { font-size:15px; letter-spacing:.12em; }
+.side nav { display:flex; gap:30px; }
+.side nav a { padding:0; height:63px; border-radius:0; font-size:13px; letter-spacing:.1em; border-bottom:2px solid transparent; gap:7px; }
+.side nav a:hover { background:none; }
+.side nav a.on { background:none; color:#111; font-weight:500; border-bottom-color:#111; }
+.side nav .ic { width:15px; height:15px; }
+.side-foot { margin:0 0 0 auto; display:flex; gap:30px; align-items:center; }
+.stats { display:flex; gap:22px; }
+.stat { background:none; padding:0; display:flex; gap:6px; align-items:baseline; }
+.stat .v { font-size:15px; font-weight:400; }
+.memo { display:flex; gap:16px; font-size:12px; }
+.memo > span { display:none; }
+.memo a { font-weight:500; letter-spacing:.06em; }
+.main { max-width:1560px; margin:0 auto; padding:0 56px 80px; }
+.top { position:static; padding:64px 0 34px; border-bottom:1px solid #111; background:none; backdrop-filter:none; align-items:flex-end; }
+.tt { font-size:60px; letter-spacing:.06em; line-height:1.15; margin:6px 0 10px; }
+section.card { padding:52px 0; margin:0; border-bottom:1px solid #111; scroll-margin-top:64px; }
+.duo { gap:64px; }
+h2 { font-size:32px; letter-spacing:.06em; }
+.sh { margin-bottom:34px; }
+#advice h3 { font-size:11px; letter-spacing:.24em; color:var(--sub); font-weight:500; }
+.ad { background:none; border-left:0; border-top:1px solid #111; padding:18px 0 0; }
+.ad.bad { background:none; border-top:2px solid var(--bad); }
+.adt { font-family:var(--display); font-size:17px; font-weight:400; }
+.adt .ic { color:#111; }
+.adb { font-size:50px; line-height:1.2; margin:8px 0 4px; }
+.ada .ic { color:#111; }
+.row3 { gap:32px; } .adv { gap:56px; } .pats { gap:32px; }
+.li { background:none; border-bottom:1px solid var(--line); border-radius:0; padding:13px 0; margin:0; }
+.li:first-of-type { border-top:1px solid #111; }
+.trends { gap:48px 48px; }
+.m { border-top:1px solid #111; padding:18px 0 4px; }
+.mh b { font-family:var(--display); font-size:18px; font-weight:400; }
+.big { font-size:46px; line-height:1.2; margin:10px 0 4px; }
+.badge { padding:0; font-weight:500; letter-spacing:.06em; font-size:12px; }
+.pb { border-radius:0; } .pb:not(.win) em { color:#111; text-shadow:none; }
+.tb { height:2px; overflow:visible; } .tb i { border-radius:0; }
+.tr { padding:10px 0; border-bottom:1px solid var(--line); }
+textarea { background:#fff; }
+#landing { background:var(--bg); }
+.land h1 { font-size:50px; line-height:1.25; letter-spacing:.04em; }
+.steps li::before { border-radius:0; border-color:#111; color:#111; }
+#drop { border:1px solid #111; }
+#drop:hover, #drop.over { background:#fff; }
+#drop .ic { color:#111; }
+@media (max-width:1100px) { .side { height:auto; flex-wrap:wrap; padding:12px 20px; } .main { padding:0 20px 40px; } }
