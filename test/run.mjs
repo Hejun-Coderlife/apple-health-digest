@@ -22,7 +22,7 @@ if (process.argv[3]) {
   }
   console.log('mismatch', bad, 'workouts expected', T.workouts);
 }
-const text = HD.buildText(R, { years: 3, gran: 'week', profile: true, prompt: true });
+const text = HD.buildText(R, { years: 3, gran: 'month', profile: true, prompt: true });
 fs.writeFileSync(path.join(here, 'out-week.txt'), text);
-fs.writeFileSync(path.join(here, 'out-month.txt'), HD.buildText(R, { years: 0, gran: 'month', profile: true, prompt: false }));
+fs.writeFileSync(path.join(here, 'out-month.txt'), HD.buildText(R, { years: 0, gran: 'week', full: true, profile: true, prompt: false }));
 console.log('chars', text.length);

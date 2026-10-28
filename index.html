@@ -92,8 +92,9 @@
           <option value="2">最近 2 年</option><option value="1">最近 1 年</option>
         </select></label>
         <label>明细粒度 <select id="optGran">
-          <option value="week">按周</option><option value="month">按月</option>
+          <option value="month">按月</option><option value="week">按周</option>
         </select></label>
+        <label><input type="checkbox" id="optFull"> 全部指标</label>
         <label><input type="checkbox" id="optProfile" checked> 带上性别和年龄</label>
         <label><input type="checkbox" id="optPrompt" checked> 附上分析要求</label>
       </div>
@@ -134,31 +135,32 @@ const HD = (() => {
   };
   const ASLEEP = new Set(['AsleepCore', 'AsleepDeep', 'AsleepREM', 'AsleepUnspecified', 'Asleep']);
 
+  // core = 默认只放这些；hint 写在「每年平均」里，人和 AI 都能看懂
   const COLS = [
-    { k: 'rhr', label: '静息心率', unit: '次/分', d: 1, note: '安静时的心率，越低通常心肺越好；连续几天升高常见于熬夜、生病、压力大' },
-    { k: 'hrv', label: 'HRV', unit: '毫秒', d: 0, note: '心率变异性(SDNN)，越高通常恢复越好、压力越小；个体差异大，主要看自己的变化' },
-    { k: 'whr', label: '步行心率', unit: '次/分', d: 1, note: '走路时的平均心率' },
-    { k: 'vo2', label: 'VO2max', unit: '毫升/公斤/分', d: 1, note: '最大摄氧量（手表估算），心肺耐力指标，越高越好' },
-    { k: 'hrr', label: '心率恢复', unit: '次/分', d: 0, note: '运动结束后 1 分钟心率降了多少，越大越好' },
-    { k: 'sleep', label: '睡眠', unit: '小时', d: 1, note: '每晚真正睡着的时长（不含醒着躺床）；白天小睡不计' },
-    { k: 'deep', label: '深睡', unit: '分钟', d: 0, note: '每晚深睡时长' },
-    { k: 'rem', label: 'REM', unit: '分钟', d: 0, note: '每晚快速眼动睡眠时长' },
-    { k: 'awake', label: '夜醒', unit: '分钟', d: 0, note: '睡眠中途清醒的时长' },
-    { k: 'bed', label: '入睡', unit: '时:分', fmt: 'clock', note: '平均入睡时刻' },
-    { k: 'wake', label: '醒来', unit: '时:分', fmt: 'clock', note: '平均醒来时刻' },
-    { k: 'bedSd', src: 'bed', agg: 'sd', label: '入睡波动', unit: '分钟', d: 0, note: '入睡时刻的标准差，越小作息越规律' },
-    { k: 'steps', label: '步数', unit: '步/天', d: 0, note: '日均步数' },
-    { k: 'kcal', label: '活动能量', unit: '千卡/天', d: 0, note: '运动和走动消耗的热量（不含基础代谢），即红色圆环' },
-    { k: 'ex', label: '锻炼', unit: '分钟/天', d: 0, note: '中等强度以上的活动时长，即绿色圆环' },
-    { k: 'stand', label: '站立', unit: '小时/天', d: 1, note: '有站起来活动的小时数，即蓝色圆环' },
-    { k: 'daylight', label: '日照', unit: '分钟/天', d: 0, note: '待在户外日光下的时长' },
-    { k: 'wkN', agg: 'rate', label: '训练次数', unit: '次/周', d: 1, note: '手表里记录的体能训练次数' },
-    { k: 'wkMin', agg: 'rate', label: '训练时长', unit: '分钟/周', d: 0, note: '体能训练总时长' },
-    { k: 'resp', label: '呼吸率', unit: '次/分', d: 1, note: '睡眠时的呼吸频率' },
-    { k: 'spo2', label: '血氧', unit: '%', d: 1, note: '血氧饱和度' },
-    { k: 'wtemp', label: '腕温偏差', unit: '°C', d: 2, note: '睡眠时手腕温度相对个人基线的偏差' },
-    { k: 'weight', label: '体重', unit: '公斤', d: 1, note: '' },
-    { k: 'fat', label: '体脂率', unit: '%', d: 1, note: '' },
+    { k: 'rhr', core: 1, label: '静息心率', unit: '次/分', d: 1, hint: '越低越好' },
+    { k: 'hrv', core: 1, label: 'HRV', unit: '毫秒', d: 0, hint: '越高越好，反映身体恢复' },
+    { k: 'whr', label: '步行心率', unit: '次/分', d: 1, hint: '越低越好' },
+    { k: 'vo2', core: 1, label: '最大摄氧量', unit: '毫升/公斤/分', d: 1, hint: '心肺耐力，越高越好' },
+    { k: 'hrr', label: '心率恢复', unit: '次/分', d: 0, hint: '运动后 1 分钟心率降多少，越大越好' },
+    { k: 'sleep', core: 1, label: '睡眠', unit: '小时/晚', d: 1, hint: '真正睡着的时长' },
+    { k: 'deep', core: 1, label: '深睡', unit: '分钟/晚', d: 0 },
+    { k: 'rem', label: 'REM睡眠', unit: '分钟/晚', d: 0 },
+    { k: 'awake', label: '夜醒', unit: '分钟/晚', d: 0 },
+    { k: 'bed', core: 1, label: '入睡', fmt: 'clock', hint: '平均时刻' },
+    { k: 'wake', core: 1, label: '醒来', fmt: 'clock', hint: '平均时刻' },
+    { k: 'bedSd', core: 1, src: 'bed', agg: 'sd', label: '入睡波动', unit: '分钟', d: 0, hint: '越小作息越规律' },
+    { k: 'steps', core: 1, label: '步数', unit: '步/天', d: 0 },
+    { k: 'kcal', label: '活动能量', unit: '千卡/天', d: 0, hint: '红环' },
+    { k: 'ex', core: 1, label: '锻炼', unit: '分钟/天', d: 0, hint: '绿环，中等强度以上' },
+    { k: 'stand', label: '站立', unit: '小时/天', d: 1, hint: '蓝环' },
+    { k: 'daylight', label: '日照', unit: '分钟/天', d: 0 },
+    { k: 'wkN', core: 1, agg: 'rate', label: '训练', unit: '次/周', d: 1 },
+    { k: 'wkMin', agg: 'rate', label: '训练时长', unit: '分钟/周', d: 0 },
+    { k: 'resp', label: '呼吸率', unit: '次/分', d: 1 },
+    { k: 'spo2', label: '血氧', unit: '%', d: 1 },
+    { k: 'wtemp', label: '腕温偏差', unit: '°C', d: 2, hint: '相对个人基线' },
+    { k: 'weight', core: 1, label: '体重', unit: '公斤', d: 1 },
+    { k: 'fat', label: '体脂率', unit: '%', d: 1 },
   ];
   const DATA_KEYS = ['rhr', 'hrv', 'sleep', 'steps', 'kcal', 'ex', 'vo2', 'weight'];
   const WATCH_KEYS = ['rhr', 'hrv', 'sleep', 'kcal', 'ex', 'stand', 'wkN'];
@@ -171,7 +173,7 @@ const HD = (() => {
     Badminton: '羽毛球', Basketball: '篮球', Soccer: '足球', TableTennis: '乒乓球', Tennis: '网球', Golf: '高尔夫',
     MindAndBody: '身心训练', Flexibility: '柔韧训练', Cooldown: '放松整理', Boxing: '拳击', Kickboxing: '搏击',
     MartialArts: '武术', Climbing: '攀岩', SnowSports: '雪上运动', DownhillSkiing: '滑雪', Snowboarding: '单板滑雪',
-    Taichi: '太极', Barre: '芭蕾塑形', Other: '其他',
+    Taichi: '太极', SwimBikeRun: '铁人三项', Barre: '芭蕾塑形', Other: '其他',
   };
 
   function attr(line, name) {
@@ -468,11 +470,12 @@ const HD = (() => {
     return v.toFixed(c.d);
   }
 
-  function table(list, keyLabel) {
-    const cols = COLS.filter(c => list.some(o => o[c.k] != null));
-    const head = [keyLabel, '有数据天数', ...cols.map(c => c.label)].join(',');
-    const body = list.map(o => [o.key, o.days, ...cols.map(c => fmt(c, o[c.k]))].join(','));
-    return { cols, text: [head, ...body].join('\n') };
+  const head = c => c.label + (c.unit ? '(' + c.unit + ')' : '');
+  function table(list, keyLabel, pick) {
+    const cols = COLS.filter(c => pick(c) && list.some(o => o[c.k] != null));
+    const top = [keyLabel, ...cols.map(head)].join(',');
+    const body = list.map(o => [o.key, ...cols.map(c => fmt(c, o[c.k]))].join(','));
+    return [top, ...body].join('\n');
   }
 
   function rangeRows(R, years) {
@@ -492,62 +495,70 @@ const HD = (() => {
     return a > 0 && a < 120 ? a : null;
   }
 
-  const PROMPT = `【我的要求】
-你是一位懂运动生理和睡眠的健康数据分析师。请基于上面的数据给我一份解读：
-1. 总体画像：用 3~5 句话概括我这段时间的整体身体状态。
-2. 长期趋势：静息心率、HRV、心肺耐力(VO2max)、睡眠、活动量，各自是在变好、变差还是持平？指出明显的转折点（具体到哪几周或哪个月），并推测可能的原因。
-3. 相互关系：睡得多/睡得规律的周，HRV 和静息心率有没有更好？运动多的周和少的周，各项指标有什么差别？
-4. 异常时段：有没有某段时间指标明显变差（比如静息心率突然升高、HRV 骤降）？可能对应生病、熬夜、压力大或作息变化。
-5. 建议：给我 3 条最值得优先改变的具体建议，每条说明依据的是哪项数据。
-要求：
-· 只根据给出的数据下结论，引用具体数字和时间段；数据不够支撑的地方直接说"数据不足"，不要编造。
-· 空白表示没有数据，不是 0。
-· 这不是医疗诊断；如果看到值得去医院检查的信号，请明确提醒。
-· 用通俗的中文回答，少用术语，必要的术语用一句话解释。`;
+  const PROMPT = `四、请你解读
+你是懂运动和睡眠的健康顾问，请用大白话帮我解读上面的数据。按这个格式回答，不要写长段落：
+
+1. 一句话结论（30 字以内）
+2. 一张表：指标 | 现在 | 和最早比 | 好还是不好（只列最重要的 5 项）
+3. 三个发现：可以是长期变化、某段时间突然变差，或睡眠/运动和心率之间的关系。每个发现 2~3 句话，写清楚是哪段时间、什么数字、可能的原因
+4. 三条建议：每条先一句话说做什么，再一句话说依据哪个数字
+5. 如果有值得去医院检查的信号，单独一行提醒；没有就不写
+
+规则：只依据上面的数据，不编造，数据不够就说"数据不足"；空白是没数据，不是 0；不用医学术语。`;
+
+  function yearLabel(y, rows) {
+    const ds = rows.filter(r => r.date.startsWith(y) && hasData(r)).map(r => r.date);
+    const m1 = +ds[0].slice(5, 7), m2 = +ds[ds.length - 1].slice(5, 7);
+    return y + ' 年' + (m1 === 1 && m2 === 12 ? '' : '(' + m1 + '–' + m2 + '月)');
+  }
 
   function buildText(R, opt) {
     const rows = rangeRows(R, opt.years);
     if (!rows.length) return '这个时间范围内没有可用的数据。';
     const anyW = R.workouts.length > 0;
-    const gLabel = opt.gran === 'month' ? '月份' : '周一日期';
-    const detail = table(aggregate(rows, opt.gran, anyW), gLabel);
-    const yearly = table(aggregate(R.rows.slice(Math.max(0, R.rows.findIndex(hasData))), 'year', anyW), '年份');
+    const pick = c => opt.full || c.core;
+    const month = opt.gran === 'month';
+    // 只覆盖了几天的首尾周期不放进明细，免得一两天的数据被当成一整月
+    const periods = aggregate(rows, opt.gran, anyW).filter(o => o.days >= (month ? 10 : 3));
+    const all = rangeRows(R, 0);
+    const years = aggregate(all, 'year', anyW);
     const from = rows[0].date, to = rows[rows.length - 1].date;
-    const n = detail.text.split('\n').length - 1;
 
-    const L = [];
-    L.push('下面是我从 Apple「健康」导出的数据摘要（已在本地按' + (opt.gran === 'month' ? '月' : '周') + '汇总，不含原始记录）。请先读完全部数据，再按最后的要求分析。', '');
+    const L = ['请帮我解读我的 Apple 健康数据。数据已在本地按' + (month ? '月' : '周') + '汇总，最后有具体要求。', ''];
+    const who = [];
     if (opt.profile) {
       const a = age(R.dob, R.exportDate || R.last);
-      const p = [R.sex, a != null ? a + ' 岁' : null].filter(Boolean).join('，');
-      if (p) L.push('【基本信息】' + p);
+      if (R.sex) who.push(R.sex);
+      if (a != null) who.push(a + ' 岁');
     }
-    L.push('【数据范围】' + from + ' 至 ' + to + '，共 ' + n + (opt.gran === 'month' ? ' 个月' : ' 周'));
-    L.push('【怎么看】',
-      '· 每行是这' + (opt.gran === 'month' ? '个月' : '一周') + '的日均值；训练按"每周几次"折算。',
-      '· 空白 = 那段时间没有这项数据（多半没戴表或系统没测），不是 0。',
-      '· "有数据天数"太少的行，数值参考性低。',
-      '· 睡眠、入睡、醒来记在醒来那天；入睡/醒来是 24 小时制的平均时刻。');
-    const used = new Set([...detail.cols, ...yearly.cols]);
-    L.push('【字段】');
-    for (const c of COLS) if (used.has(c)) L.push('· ' + c.label + '（' + c.unit + '）' + (c.note ? '：' + c.note : ''));
-    L.push('', '【年度汇总】（全部年份）', yearly.text, '');
+    who.push('明细范围 ' + from + ' 至 ' + to);
+    L.push(who.join(' · '), '');
+
+    L.push('一、每年平均');
+    for (const c of COLS) {
+      if (!pick(c)) continue;
+      const vs = years.filter(o => o[c.k] != null);
+      if (!vs.length) continue;
+      const desc = [c.unit, c.hint].filter(Boolean).join('，');
+      L.push('· ' + c.label + (desc ? '（' + desc + '）' : '') + '：' +
+        vs.map(o => yearLabel(o.key, all) + ' ' + fmt(c, o[c.k])).join(' → '));
+    }
+    L.push('');
 
     const cnt = new Map();
     for (const w of R.workouts) {
       if (w.date < from || w.date > to) continue;
       const name = WORKOUT[w.type] || w.type;
-      const o = cnt.get(name) || { n: 0, min: 0 };
-      o.n++; o.min += w.min;
-      cnt.set(name, o);
+      cnt.set(name, (cnt.get(name) || 0) + 1);
     }
     if (cnt.size) {
-      const top = [...cnt].sort((a, b) => b[1].n - a[1].n).slice(0, 8);
-      L.push('【常做的训练】' + top.map(([k, o]) => k + ' ' + o.n + ' 次（共 ' + Math.round(o.min) + ' 分钟）').join('；'), '');
+      L.push('二、常做的训练', [...cnt].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => k + ' ' + n + ' 次').join(' · '), '');
     }
-    L.push('【' + (opt.gran === 'month' ? '每月' : '每周') + '明细】', detail.text);
-    if (opt.prompt) L.push('', PROMPT);
-    return L.join('\n');
+
+    L.push((cnt.size ? '三' : '二') + '、每' + (month ? '月' : '周') + '明细（给 AI 看的；空白=没数据，多半是没戴表，不是 0）',
+      table(periods, month ? '月份' : '周一日期', pick), '');
+    if (opt.prompt) L.push(cnt.size ? PROMPT : PROMPT.replace('四、', '三、'));
+    return L.join('\n').trim();
   }
 
   return { digest, buildText, aggregate, rangeRows, COLS };
@@ -623,11 +634,11 @@ function sparkline(list, k, digits) {
 }
 
 function refresh() {
-  const opt = { years: +$('optRange').value, gran: $('optGran').value, profile: $('optProfile').checked, prompt: $('optPrompt').checked };
+  const opt = { years: +$('optRange').value, gran: $('optGran').value, full: $('optFull').checked, profile: $('optProfile').checked, prompt: $('optPrompt').checked };
   const text = HD.buildText(R, opt);
   $('out').value = text;
   const kb = new Blob([text]).size / 1024;
-  $('size').textContent = text.length.toLocaleString() + ' 字 · ' + kb.toFixed(0) + ' KB' + (text.length > 60000 ? ' · 偏长，建议改按月或缩短范围' : '');
+  $('size').textContent = text.length.toLocaleString() + ' 字 · ' + kb.toFixed(0) + ' KB' + (text.length > 60000 ? ' · 偏长，建议按月、缩短范围或去掉全部指标' : '');
   const weeks = HD.aggregate(HD.rangeRows(R, opt.years), 'week', R.workouts.length > 0);
   const C = [['rhr', '静息心率', 1], ['hrv', 'HRV', 0], ['sleep', '睡眠（小时）', 1], ['steps', '日均步数', 0]];
   $('charts').innerHTML = C.map(([k, name, dg]) => {
@@ -641,7 +652,7 @@ $('file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if
 $('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
 $('drop').ondragleave = () => $('drop').classList.remove('over');
 $('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) run(f); };
-for (const id of ['optRange', 'optGran', 'optProfile', 'optPrompt']) $(id).onchange = refresh;
+for (const id of ['optRange', 'optGran', 'optFull', 'optProfile', 'optPrompt']) $(id).onchange = refresh;
 
 $('copy').onclick = async () => {
   const t = $('out').value;
