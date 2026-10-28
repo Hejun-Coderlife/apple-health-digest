@@ -56,7 +56,7 @@ for (let t = phoneStart; t <= end; t += D) {
     rec('HKQuantityTypeIdentifierHeartRate', '小红的Apple Watch', 'count/min', a, a, Math.round(60 + rnd() * 40),
       '  <MetadataEntry key="HKMetadataKeyHeartRateMotionContext" value="0"/>\n');
   }
-  const rhr = 66 - 8 * prog + rnd() * 3 + mn * 4;
+  const rhr = 66 - 8 * prog + rnd() * 3 - mn * 4;
   rec('HKQuantityTypeIdentifierRestingHeartRate', '小红的Apple Watch', 'count/min', t + 6 * H, t + 23 * H, rhr.toFixed(0));
   for (const hh of [3, 9, 15]) {
     rec('HKQuantityTypeIdentifierHeartRateVariabilitySDNN', '小红的Apple Watch', 'ms', t + hh * H, t + hh * H + 6e4, (30 + 20 * prog + rnd() * 15 + mn * 8).toFixed(4),

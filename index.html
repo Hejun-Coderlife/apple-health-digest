@@ -46,6 +46,29 @@
   .memo { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin-top:12px; font-size:13px; color:var(--sub); }
   .memo a { color:var(--ink); font-weight:600; }
   .privacy a { color:var(--ink); }
+  #advice h3 { font-size:14px; color:var(--sub); font-weight:600; margin:18px 0 10px; }
+  #advice h3:first-child { margin-top:0; }
+  .ads-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
+  .ad { background:var(--bg); border-radius:12px; padding:14px 16px; border-left:4px solid #c7c7cc; }
+  .ad.bad { border-left-color:#d4382c; background:#fdf1f0; }
+  .ad.warn { border-left-color:#f0a020; }
+  .ad.good { border-left-color:#1f9d55; }
+  .ad.pat { border-left-color:#2f6fdb; }
+  .adt { font-weight:700; font-size:15px; }
+  .adb { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px; }
+  .ads { font-size:12px; color:var(--sub); }
+  .ada { font-size:14px; margin-top:10px; }
+  .gg { position:relative; height:8px; background:#e2e2e8; border-radius:4px; margin:12px 0 24px; }
+  .gg i { position:absolute; left:0; top:0; bottom:0; background:#f0a020; border-radius:4px; }
+  .gg b { position:absolute; top:-4px; width:2px; height:16px; background:#1f9d55; }
+  .gg span { position:absolute; top:12px; transform:translateX(-50%); font-size:11px; color:#177a43; white-space:nowrap; }
+  .pg { display:grid; grid-template-columns:auto 1fr 1fr; gap:6px 10px; align-items:center; margin-top:10px; font-size:13px; }
+  .pg .dl { display:block; font-size:11px; color:#2f6fdb; font-weight:700; }
+  .pg b { font-size:12px; color:var(--sub); font-weight:600; }
+  .pb { position:relative; height:22px; background:#e9e9ee; border-radius:5px; overflow:hidden; }
+  .pb i { position:absolute; left:0; top:0; bottom:0; background:#c7c7cc; }
+  .pb.win i { background:#2f6fdb; }
+  .pb em { position:absolute; left:8px; top:2px; font-style:normal; font-weight:700; font-size:12px; color:#fff; text-shadow:0 0 3px rgba(0,0,0,.35); }
   .cap { font-size:13px; color:var(--sub); margin:-8px 0 14px; }
   .trends { display:grid; grid-template-columns:repeat(auto-fill,minmax(400px,1fr)); gap:12px; }
   .m { background:var(--bg); border-radius:12px; padding:14px 14px 6px; min-width:0; }
@@ -117,6 +140,12 @@
         </select></label></div>
       <div class="stats" id="stats"></div>
       <div class="memo" id="memo"></div>
+    </div>
+
+    <div class="card">
+      <h2>给你的建议</h2>
+      <p class="cap">按你的数据和常见的健康建议自动算出来的，不联网。不是医疗诊断</p>
+      <div id="advice"></div>
     </div>
 
     <div class="card">
@@ -630,7 +659,7 @@ const HD = (() => {
     };
   }
 
-  return { digest, buildText, report, fmt, COLS };
+  return { digest, buildText, report, aggregate, rangeRows, fmt, COLS };
 })();
 // CORE-END
 </script>
@@ -907,6 +936,141 @@ function drawSleep() {
   });
 }
 
+// ---------- 建议：本地按规则算，不联网 ----------
+const at = (list, k, from, to) => mean(list.filter(o => o[k] != null).slice(from, to), k);
+const sign = (v, d) => (v > 0 ? '+' : '') + v.toFixed(d);
+
+function advise() {
+  const ms = REP.months, items = [];
+  const recent = k => at(ms, k, -6), early = k => ms.filter(o => o[k] != null).length >= 12 ? at(ms, k, 0, 6) : null;
+  const add = (o) => items.push(o);
+
+  // 先看要就医的信号
+  const spo2 = recent('spo2'), rhr = recent('rhr');
+  if (spo2 != null && spo2 < 94) add({ lv: 'bad', score: 200, title: '血氧偏低', big: spo2.toFixed(1) + '%', sub: '一般在 95% 以上',
+    act: '建议去医院查一下，尤其是睡觉打鼾、白天总犯困的话' });
+  if (rhr != null && rhr > 90) add({ lv: 'bad', score: 190, title: '静息心率偏高', big: rhr.toFixed(0) + ' 次/分', sub: '安静时一般在 60~90',
+    act: '建议去医院查一下心脏和甲状腺' });
+
+  // 睡眠
+  const sl = recent('sleep');
+  if (sl != null) {
+    if (sl < 7) add({ lv: sl < 6 ? 'bad' : 'warn', score: (7 - sl) * 60, title: '睡得不够', big: sl.toFixed(1) + ' 小时/晚',
+      gauge: [sl, 7, 9.5, '7 小时'], sub: '每晚比建议少 ' + Math.round((7 - sl) * 60) + ' 分钟',
+      act: '每晚提前 30 分钟上床，睡前 1 小时放下手机' });
+    else add({ lv: 'good', title: '睡眠时长够了', big: sl.toFixed(1) + ' 小时/晚', act: '继续保持' });
+  }
+  const bed = recent('bed');
+  if (bed != null && bed > 720) add({ lv: 'warn', score: (bed - 690) / 1.5, title: '睡得太晚', big: clock(bed), sub: '最近半年平均入睡时间',
+    act: '每周把上床时间往前挪 15 分钟，慢慢挪到 23:30 前' });
+  const sd = recent('bedSd');
+  if (sd != null && sd > 45) add({ lv: 'warn', score: sd - 20, title: '作息不规律', big: '±' + Math.round(sd) + ' 分钟', sub: '每天入睡时间前后差这么多',
+    act: '先固定起床时间，周末也别比平时晚 1 小时以上' });
+
+  // 活动
+  const st = recent('steps');
+  if (st != null) {
+    if (st < 8000) add({ lv: 'warn', score: (8000 - st) / 40, title: '走得偏少', big: Math.round(st) + ' 步/天',
+      gauge: [st, 8000, 12000, '8000 步'], act: '饭后散步 20 分钟，大约能多走 2000 步' });
+    else add({ lv: 'good', title: '每天步数达标', big: Math.round(st) + ' 步/天', act: '继续保持' });
+  }
+  const ex = recent('ex');
+  if (ex != null && ex < 30) add({ lv: 'warn', score: (30 - ex) * 3, title: '运动强度不够', big: Math.round(ex) + ' 分钟/天',
+    gauge: [ex, 30, 45, '30 分钟'], sub: '绿环（让人微微喘的活动）', act: '每天快走、骑车或跳绳 30 分钟，把绿环填满' });
+  const wk = recent('wkN');
+  if (wk != null) {
+    if (wk < 2) add({ lv: 'warn', score: (2 - wk) * 35, title: '训练太少', big: wk.toFixed(1) + ' 次/周',
+      gauge: [wk, 3, 4.5, '3 次'], act: '每周固定 2~3 天运动，每次 30 分钟以上，先从快走开始' });
+    else if (wk >= 3) add({ lv: 'good', title: '训练很规律', big: wk.toFixed(1) + ' 次/周', act: '继续保持' });
+  }
+
+  // 长期变化
+  const chg = (k, label, unit, d, dir, minMove, badTitle, goodTitle, act) => {
+    const a = early(k), b = recent(k);
+    if (a == null || b == null || Math.abs(b - a) < minMove) return;
+    const better = (b - a) * dir > 0;
+    add(better
+      ? { lv: 'good', title: goodTitle, big: sign(b - a, d) + ' ' + unit, sub: label + '：' + a.toFixed(d) + ' → ' + b.toFixed(d), act: '继续保持' }
+      : { lv: 'warn', score: Math.abs(b - a) / minMove * 25, title: badTitle, big: sign(b - a, d) + ' ' + unit, sub: label + '：' + a.toFixed(d) + ' → ' + b.toFixed(d), act });
+  };
+  chg('rhr', '静息心率', '次/分', 1, -1, 2, '静息心率在升高', '静息心率降低了，心肺在变好', '常和睡眠少、压力大、运动变少有关，先把睡眠补上');
+  chg('hrv', 'HRV', '毫秒', 0, 1, 4, '身体恢复变差（HRV 下降）', 'HRV 升高了，身体恢复更好', '常见于长期累、睡不够，先保证睡眠，晚上少喝酒');
+  chg('vo2', '最大摄氧量', '', 1, 1, 1.5, '心肺耐力在下降', '心肺耐力提升了', '每周 2 次让人微微喘的运动：快走上坡、慢跑、游泳');
+  const wa = early('weight'), wb = recent('weight');
+  if (wa != null && wb != null && wb - wa >= 3) add({ lv: 'warn', score: (wb - wa) * 10, title: '体重在增加', big: sign(wb - wa, 1) + ' 公斤',
+    sub: wa.toFixed(1) + ' → ' + wb.toFixed(1), act: '留意晚饭和零食，配合每天多走路' });
+
+  // 最近一个月突然变差
+  const days = HD.rangeRows(R, 0).filter(r => r.rhr != null);
+  if (days.length > 120) {
+    const last = days.slice(-28), base = days.slice(-208, -28);
+    const d = mean(last, 'rhr') - mean(base, 'rhr');
+    if (d >= 4) add({ lv: 'warn', score: 95, title: '最近 4 周静息心率突然升高', big: sign(d, 1) + ' 次/分', sub: '和之前半年比',
+      act: '可能是感冒、太累或压力大，先休息；持续两周以上建议看医生' });
+  }
+  return items;
+}
+
+// 自己的数据里找规律：把周分成两组比一比
+function patterns() {
+  const weeks = HD.aggregate(HD.rangeRows(R, +$('optRange').value), 'week', R.workouts.length > 0).filter(o => o.days >= 5);
+  const out = [];
+  const third = (k, high) => {
+    const w = weeks.filter(o => o[k] != null).sort((a, b) => a[k] - b[k]);
+    if (w.length < 18) return null;
+    const n = Math.floor(w.length / 3);
+    return high ? [w.slice(-n), w.slice(0, n)] : [w.slice(0, n), w.slice(-n)];
+  };
+  const compare = (groups, metrics) => groups && metrics.map(([k, dir, min]) => {
+    const a = mean(groups[0], k), b = mean(groups[1], k);
+    return a == null || b == null ? null : { c: COL[k], a, b, good: (a - b) * dir >= min, bad: (b - a) * dir >= min };
+  }).filter(Boolean);
+  const keep = rows => rows && rows.some(r => r.good) && !rows.some(r => r.bad);
+
+  let g = third('sleep', true), rows = compare(g, [['hrv', 1, 2], ['rhr', -1, 1]]);
+  if (keep(rows)) out.push({ title: '睡得多的那些周，身体恢复更好', la: '睡得多的周', lb: '睡得少的周',
+    note: `平均 ${mean(g[0], 'sleep').toFixed(1)} 小时 vs ${mean(g[1], 'sleep').toFixed(1)} 小时`, rows });
+  g = third('bedSd', false); rows = compare(g, [['hrv', 1, 2], ['rhr', -1, 1], ['sleep', 1, 0.2]]);
+  if (keep(rows)) out.push({ title: '作息规律的那些周，状态更好', la: '规律的周', lb: '不规律的周',
+    note: `入睡前后差 ${Math.round(mean(g[0], 'bedSd'))} 分钟 vs ${Math.round(mean(g[1], 'bedSd'))} 分钟`, rows });
+  const tw = weeks.filter(o => o.wkN != null);
+  const hi = tw.filter(o => o.wkN >= 2), lo = tw.filter(o => o.wkN < 0.5);
+  if (hi.length >= 6 && lo.length >= 6) {
+    rows = compare([hi, lo], [['rhr', -1, 1], ['hrv', 1, 2], ['sleep', 1, 0.2]]);
+    if (keep(rows)) out.push({ title: '运动多的那些周，各项指标更好', la: '练 2 次以上的周', lb: '没练的周',
+      note: `${hi.length} 周 vs ${lo.length} 周`, rows });
+  }
+  return out;
+}
+
+function drawAdvice() {
+  const items = advise(), pats = patterns();
+  const todo = items.filter(o => o.lv !== 'good').sort((a, b) => b.score - a.score);
+  const good = items.filter(o => o.lv === 'good');
+  const card = o => `<div class="ad ${o.lv}">
+    <div class="adt">${o.lv === 'bad' ? '⚠️ ' : ''}${o.title}</div>
+    <div class="adb">${o.big}</div>${o.sub ? `<div class="ads">${o.sub}</div>` : ''}
+    ${o.gauge ? gauge(...o.gauge) : ''}
+    <div class="ada">👉 ${o.act}</div></div>`;
+  const pat = p => `<div class="ad pat"><div class="adt">${p.title}</div><div class="ads">${p.note}</div>
+    <div class="pg"><span></span><b>${p.la}</b><b>${p.lb}</b>${p.rows.map(r => {
+      const max = Math.max(r.a, r.b);
+      const d = r.a - r.b, word = d > 0 ? '高 ' : '低 ';
+      return `<span>${r.c.label}<small class="dl">${word}${HD.fmt(r.c, Math.abs(d))}</small></span>${[r.a, r.b].map((v, j) => `<div class="pb ${(j === 0) === r.good ? 'win' : ''}"><i style="width:${(v / max * 100).toFixed(0)}%"></i><em>${HD.fmt(r.c, v)}</em></div>`).join('')}`;
+    }).join('')}</div></div>`;
+  let h = '';
+  if (todo.length) h += `<h3>先改这 ${Math.min(3, todo.length)} 件事</h3><div class="ads-grid">${todo.slice(0, 3).map(card).join('')}</div>`;
+  if (todo.length > 3) h += `<h3>其次</h3><div class="ads-grid">${todo.slice(3).map(card).join('')}</div>`;
+  if (pats.length) h += `<h3>从你自己的数据里看出的规律</h3><div class="ads-grid">${pats.map(pat).join('')}</div>`;
+  if (good.length) h += `<h3>做得好的</h3><div class="ads-grid">${good.map(card).join('')}</div>`;
+  $('advice').innerHTML = h || '<p class="cap">数据太少，暂时给不出建议。</p>';
+}
+
+function gauge(v, goal, max, label) {
+  const p = Math.min(100, v / max * 100), g = goal / max * 100;
+  return `<div class="gg"><i style="width:${p}%"></i><b style="left:${g}%"></b><span style="left:${g}%">${label}</span></div>`;
+}
+
 function drawTraining() {
   const t = REP.training.slice(0, 8);
   $('trainCard').classList.toggle('hide', !t.length);
@@ -922,6 +1086,7 @@ function render() {
   drawTrends();
   drawSleep();
   drawTraining();
+  drawAdvice();
   refreshText();
 }
 
