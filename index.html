@@ -8,7 +8,7 @@
   :root { --red:#ff2d55; --ink:#1d1d1f; --sub:#6e6e73; --line:#e5e5ea; --bg:#f5f5f7; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; }
-  .wrap { max-width:880px; margin:0 auto; padding:40px 20px 60px; }
+  .wrap { max-width:1440px; margin:0 auto; padding:32px 28px 60px; }
   h1 { font-size:28px; margin:0 0 6px; letter-spacing:.5px; }
   h1 span { color:var(--red); }
   .lead { color:var(--sub); margin:0 0 28px; }
@@ -44,7 +44,7 @@
   .range { font-size:14px; display:flex; align-items:center; gap:6px; }
   .range select { font:inherit; padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; }
   .cap { font-size:13px; color:var(--sub); margin:-8px 0 14px; }
-  .trends { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  .trends { display:grid; grid-template-columns:repeat(auto-fill,minmax(400px,1fr)); gap:12px; }
   .m { background:var(--bg); border-radius:12px; padding:14px 14px 6px; min-width:0; }
   .mh { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
   .mh b { font-size:15px; }
@@ -725,8 +725,16 @@ function xAxis(months, x, H) {
     : '').join('');
 }
 
-function lineChart(box, months, c, span) {
-  const W = box.clientWidth || 380, H = 170, L = 40, RR = 10, T = 16, B = 24;
+function trim(months, has) {
+  const i0 = months.findIndex(has);
+  let i1 = months.length - 1;
+  while (i1 > i0 && !has(months[i1])) i1--;
+  return i0 < 0 ? [] : months.slice(i0, i1 + 1);
+}
+
+function lineChart(box, all, c, span) {
+  const months = trim(all, o => o[c.k] != null);
+  const W = box.clientWidth || 380, H = 170, L = 34, RR = 4, T = 16, B = 24;
   const n = months.length;
   const x = i => L + (i + 0.5) / n * (W - L - RR);
   const vals = months.map(o => o[c.k]).filter(v => v != null);
@@ -749,7 +757,7 @@ function lineChart(box, months, c, span) {
     if (!idx.length) continue;
     const x0 = x(idx[0]) - 4, x1 = x(idx[idx.length - 1]) + 4, yy = y(yr[c.k]);
     s += `<line x1="${x0}" x2="${x1}" y1="${yy}" y2="${yy}" stroke="${INK}" stroke-width="1.5" stroke-dasharray="4 3" opacity=".55"/>`;
-    if (idx.length >= 3) {
+    if (x1 - x0 >= 34) {
       const ty = yy - 7 < T ? yy + 15 : yy - 7;
       s += `<text x="${(x0 + x1) / 2}" y="${ty}" text-anchor="middle" class="yr">${HD.fmt(c, yr[c.k])}</text>`;
     }
@@ -761,6 +769,10 @@ function lineChart(box, months, c, span) {
     prev = i;
   });
   s += `<path d="${d}" fill="none" stroke="${LINE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  months.forEach((o, i) => {
+    if (o[c.k] != null && months[i - 1]?.[c.k] == null && months[i + 1]?.[c.k] == null)
+      s += `<circle cx="${x(i)}" cy="${y(o[c.k])}" r="3" fill="${LINE}"/>`;
+  });
   s += `<line class="guide" y1="${T}" y2="${H - B}" stroke="${SUB}" stroke-dasharray="2 2" visibility="hidden"/>`;
   s += `<circle class="dot" r="4.5" fill="${LINE}" stroke="#fff" stroke-width="2" visibility="hidden"/>`;
   s += `<rect class="hit" x="${L}" y="0" width="${W - L - RR}" height="${H}" fill="transparent"/>`;
@@ -790,7 +802,7 @@ function drawTrends() {
     let badge = '', compare = '';
     if (ms.length >= 12) {
       const early = mean(ms.slice(0, 6), k), diff = recent - early;
-      compare = `<small>${ms[0].key.replace('-', ' 年 ')} 月起半年是 ${HD.fmt(c, early)}</small>`;
+      compare = `<small>${ym(ms[0].key)}起半年是 ${HD.fmt(c, early)}</small>`;
       let cls = 'flat', word = '基本持平', arrow = '→';
       if (Math.abs(diff) >= moved) {
         arrow = diff > 0 ? '↑' : '↓';
@@ -811,11 +823,11 @@ function drawTrends() {
 
 const clock = m => HD.fmt(COL.bed, m);
 function drawSleep() {
-  const months = REP.months, has = months.filter(o => o.bed != null && o.wake != null);
+  const months = trim(REP.months, o => o.bed != null && o.wake != null), has = months.filter(o => o.bed != null && o.wake != null);
   $('sleepCard').classList.toggle('hide', has.length < 2);
   if (has.length < 2) return;
   const box = $('sleepPlot');
-  const W = box.clientWidth || 600, H = 240, L = 46, RR = 10, T = 10, B = 24, n = months.length;
+  const W = box.clientWidth || 600, H = 240, L = 42, RR = 4, T = 10, B = 24, n = months.length;
   const x = i => L + (i + 0.5) / n * (W - L - RR);
   const lo = Math.floor((Math.min(...has.map(o => o.bed)) - 20) / 60) * 60;
   const hi = Math.ceil((Math.max(...has.map(o => o.wake)) + 20) / 60) * 60;
