@@ -62,7 +62,10 @@
   .plot, #sleepPlot { width:100%; }
   svg { display:block; overflow:visible; }
   svg .ax { font-size:11px; fill:#86868b; }
-  svg .yr { font-size:12px; font-weight:600; fill:#1d1d1f; paint-order:stroke; stroke:#f5f5f7; stroke-width:4px; }
+  svg .yr { font-size:12px; font-weight:700; fill:#1d1d1f; }
+  svg .nd { font-size:12px; fill:#aeaeb2; }
+  .tgl { font-size:12px; color:#177a43; display:flex; align-items:center; gap:6px; margin-top:2px; }
+  .tgl i { width:18px; border-top:2px dashed #1f9d55; }
   .tr { display:grid; grid-template-columns:112px 1fr 130px; align-items:center; gap:10px; padding:5px 0; font-size:14px; }
   .tb { height:12px; background:var(--bg); border-radius:6px; overflow:hidden; }
   .tb i { display:block; height:100%; background:#2f6fdb; border-radius:6px; }
@@ -118,7 +121,7 @@
 
     <div class="card">
       <h2>这几年的变化</h2>
-      <p class="cap">蓝线 = 每月平均　虚线和数字 = 全年平均　鼠标移到图上看每个月</p>
+      <p class="cap">粗线 = 走势（前后 3 个月平均）　细线 = 每月　图下数字 = 全年平均　绿虚线 = 建议值　鼠标移上去看每个月</p>
       <div class="trends" id="trends"></div>
     </div>
 
@@ -715,13 +718,14 @@ function showResult() {
 }
 
 // ---------- 图 ----------
-const INK = '#1d1d1f', SUB = '#86868b', GRID = '#e5e5ea', LINE = '#2f6fdb';
+const INK = '#1d1d1f', SUB = '#86868b', GRID = '#e2e2e8', LINE = '#2f6fdb', GOOD = '#1f9d55';
 const COL = Object.fromEntries(HD.COLS.map(c => [c.k, c]));
 // dir：1 越高越好，-1 越低越好，0 只说升降不评判
 // span：纵轴最少要覆盖的范围，免得 6.3→6.5 小时这种小波动被拉成大起大落
 // moved：变化超过这个量才算"变了"，否则显示基本持平
-const SHOW = [['rhr', -1, 10, 2], ['hrv', 1, 20, 4], ['vo2', 1, 8, 1.5], ['sleep', 1, 2, 0.3], ['deep', 1, 30, 8],
-  ['steps', 1, 4000, 800], ['ex', 1, 30, 5], ['wkN', 1, 4, 0.7], ['weight', 0, 6, 1.5]];
+// target：参考线（常见的建议值），没有就不画
+const SHOW = [['rhr', -1, 10, 2], ['hrv', 1, 20, 4], ['vo2', 1, 8, 1.5], ['sleep', 1, 2, 0.3, 7, '建议至少 7 小时'], ['deep', 1, 30, 8],
+  ['steps', 1, 4000, 800, 8000, '8000 步'], ['ex', 1, 30, 5, 30, '绿环目标 30 分钟'], ['wkN', 1, 4, 0.7, 3, '每周 3 次'], ['weight', 0, 6, 1.5]];
 
 const tip = $('tip');
 function showTip(e, html) {
@@ -751,15 +755,6 @@ function niceTicks(lo, hi) {
   return out;
 }
 
-// 横轴：每月一格，1 月处标年份；开头不是 1 月时，离下一个 1 月太近就不标，免得两个年份叠在一起
-function xAxis(months, x, H) {
-  const firstJan = months.findIndex(o => o.key.endsWith('-01'));
-  const labelFirst = firstJan < 0 || firstJan > 0 && (x(firstJan) - x(0)) > 40;
-  return months.map((o, i) => ((i === 0 && labelFirst) || o.key.endsWith('-01'))
-    ? `<line x1="${x(i)}" x2="${x(i)}" y1="${H - 20}" y2="${H - 16}" stroke="${SUB}"/><text x="${x(i)}" y="${H - 4}" text-anchor="${i === 0 ? 'start' : 'middle'}" class="ax">${o.key.slice(0, 4)}</text>`
-    : '').join('');
-}
-
 function trim(months, has) {
   const i0 = months.findIndex(has);
   let i1 = months.length - 1;
@@ -767,46 +762,66 @@ function trim(months, has) {
   return i0 < 0 ? [] : months.slice(i0, i1 + 1);
 }
 
-function lineChart(box, all, c, span) {
-  const months = trim(all, o => o[c.k] != null);
-  const W = box.clientWidth || 380, H = 170, L = 34, RR = 4, T = 16, B = 24;
-  const n = months.length;
-  const x = i => L + (i + 0.5) / n * (W - L - RR);
-  const vals = months.map(o => o[c.k]).filter(v => v != null);
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  const pad = Math.max((hi - lo) * 0.18, (span - (hi - lo)) / 2);
-  lo = Math.max(0, lo - pad); hi += pad;
-  const ticks = niceTicks(lo, hi);
-  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+// 3 个月滑动平均：只在当月有数据时算，用前后各一个月
+function smooth(months, k) {
+  return months.map((o, i) => {
+    if (o[k] == null) return null;
+    const v = [months[i - 1]?.[k], o[k], months[i + 1]?.[k]].filter(x => x != null);
+    return v.reduce((a, b) => a + b, 0) / v.length;
+  });
+}
 
-  let s = '';
-  for (const v of ticks) {
+// 每年一条底色（隔年深浅交替），底部写年份和全年平均
+function yearBands(months, x, cellW, top, bottom, H, c) {
+  let s = '', band = 0;
+  for (const yr of REP.years) {
+    const idx = months.map((o, i) => o.key.startsWith(yr.key) ? i : -1).filter(i => i >= 0);
+    if (!idx.length) continue;
+    const x0 = x(idx[0]) - cellW / 2, x1 = x(idx[idx.length - 1]) + cellW / 2, cx = (x0 + x1) / 2;
+    if (band++ % 2 === 0) s += `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${bottom - top}" fill="#fff" opacity=".7"/>`;
+    if (x1 - x0 < 26) continue;
+    s += `<text x="${cx}" y="${bottom + 14}" text-anchor="middle" class="ax">${yr.key}</text>`;
+    if (c && yr[c.k] != null && x1 - x0 >= 34) s += `<text x="${cx}" y="${bottom + 30}" text-anchor="middle" class="yr">${HD.fmt(c, yr[c.k])}</text>`;
+    if (yr[c ? c.k : 'bed'] == null) s += `<text x="${cx}" y="${(top + bottom) / 2 + 4}" text-anchor="middle" class="nd">没数据</text>`;
+  }
+  return s;
+}
+
+function lineChart(box, all, c, span, target, targetLabel) {
+  const months = trim(all, o => o[c.k] != null);
+  const W = box.clientWidth || 380, H = 196, L = 34, RR = 4, T = 10, B = 40;
+  const n = months.length, cellW = (W - L - RR) / n;
+  const x = i => L + (i + 0.5) * cellW;
+  const vals = months.map(o => o[c.k]).filter(v => v != null);
+  if (target != null) vals.push(target);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max((hi - lo) * 0.12, (span - (hi - lo)) / 2);
+  lo = Math.max(0, lo - pad); hi += pad;
+  const y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const sm = smooth(months, c.k);
+
+  let s = yearBands(months, x, cellW, T, H - B, H, c);
+  for (const v of niceTicks(lo, hi)) {
     const yy = y(v);
     s += `<line x1="${L}" x2="${W - RR}" y1="${yy}" y2="${yy}" stroke="${GRID}"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end" class="ax">${+v.toFixed(2)}</text>`;
   }
-  s += xAxis(months, x, H);
-  // 每年平均：虚线 + 数字
-  for (const yr of REP.years) {
-    if (yr[c.k] == null) continue;
-    const idx = months.map((o, i) => o.key.startsWith(yr.key) ? i : -1).filter(i => i >= 0);
-    if (!idx.length) continue;
-    const x0 = x(idx[0]) - 4, x1 = x(idx[idx.length - 1]) + 4, yy = y(yr[c.k]);
-    s += `<line x1="${x0}" x2="${x1}" y1="${yy}" y2="${yy}" stroke="${INK}" stroke-width="1.5" stroke-dasharray="4 3" opacity=".55"/>`;
-    if (x1 - x0 >= 34) {
-      const ty = yy - 7 < T ? yy + 15 : yy - 7;
-      s += `<text x="${(x0 + x1) / 2}" y="${ty}" text-anchor="middle" class="yr">${HD.fmt(c, yr[c.k])}</text>`;
-    }
+  if (target != null) {
+    const yy = y(target);
+    s += `<line x1="${L}" x2="${W - RR}" y1="${yy}" y2="${yy}" stroke="${GOOD}" stroke-width="1.5" stroke-dasharray="5 4"/>`;
   }
-  let d = '', prev = -2;
-  months.forEach((o, i) => {
-    if (o[c.k] == null) return;
-    d += (i === prev + 1 ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(o[c.k]).toFixed(1);
-    prev = i;
-  });
-  s += `<path d="${d}" fill="none" stroke="${LINE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  months.forEach((o, i) => {
-    if (o[c.k] != null && months[i - 1]?.[c.k] == null && months[i + 1]?.[c.k] == null)
-      s += `<circle cx="${x(i)}" cy="${y(o[c.k])}" r="3" fill="${LINE}"/>`;
+  const path = arr => {
+    let d = '', prev = -2;
+    arr.forEach((v, i) => {
+      if (v == null) return;
+      d += (i === prev + 1 ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1);
+      prev = i;
+    });
+    return d;
+  };
+  s += `<path d="${path(months.map(o => o[c.k]))}" fill="none" stroke="${LINE}" stroke-width="1.2" opacity=".35" stroke-linejoin="round"/>`;
+  s += `<path d="${path(sm)}" fill="none" stroke="${LINE}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;
+  sm.forEach((v, i) => {
+    if (v != null && sm[i - 1] == null && sm[i + 1] == null) s += `<circle cx="${x(i)}" cy="${y(v)}" r="3.2" fill="${LINE}"/>`;
   });
   s += `<line class="guide" y1="${T}" y2="${H - B}" stroke="${SUB}" stroke-dasharray="2 2" visibility="hidden"/>`;
   s += `<circle class="dot" r="4.5" fill="${LINE}" stroke="#fff" stroke-width="2" visibility="hidden"/>`;
@@ -814,15 +829,17 @@ function lineChart(box, all, c, span) {
   box.innerHTML = `<svg width="${W}" height="${H}">${s}</svg>`;
 
   const svg = box.firstChild, guide = svg.querySelector('.guide'), dot = svg.querySelector('.dot');
-  const hit = svg.querySelector('.hit');
+  const hit = svg.querySelector('.hit'), u = c.unit ? ' ' + c.unit : '';
   hit.onmousemove = e => {
     const mx = e.clientX - svg.getBoundingClientRect().left;
-    const i = Math.max(0, Math.min(n - 1, Math.round((mx - L) / (W - L - RR) * n - 0.5)));
+    const i = Math.max(0, Math.min(n - 1, Math.floor((mx - L) / cellW)));
     const o = months[i], v = o[c.k];
     guide.setAttribute('x1', x(i)); guide.setAttribute('x2', x(i)); guide.setAttribute('visibility', 'visible');
-    if (v != null) { dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(v)); dot.setAttribute('visibility', 'visible'); }
+    if (v != null) { dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(sm[i])); dot.setAttribute('visibility', 'visible'); }
     else dot.setAttribute('visibility', 'hidden');
-    showTip(e, `<b>${ym(o.key)}</b><br>${c.label} ${v != null ? HD.fmt(c, v) + ' ' + (c.unit || '') : '没数据'}`);
+    showTip(e, `<b>${ym(o.key)}</b><br>` + (v != null
+      ? `当月 ${HD.fmt(c, v)}${u}<br>前后 3 个月平均 ${HD.fmt(c, sm[i])}${u}`
+      : '这个月没数据'));
   };
   hit.onmouseleave = () => { guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); hideTip(); };
 }
@@ -830,14 +847,14 @@ function lineChart(box, all, c, span) {
 function drawTrends() {
   const box = $('trends');
   box.innerHTML = '';
-  for (const [k, dir, span, moved] of SHOW) {
+  for (const [k, dir, span, moved, target, targetLabel] of SHOW) {
     const c = COL[k], ms = REP.months.filter(o => o[k] != null);
     if (ms.length < 3) continue;
     const recent = mean(ms.slice(-6), k);
     let badge = '', compare = '';
     if (ms.length >= 12) {
       const early = mean(ms.slice(0, 6), k), diff = recent - early;
-      compare = `<small>${ym(ms[0].key)}起半年是 ${HD.fmt(c, early)}</small>`;
+      compare = `<small>最早半年是 ${HD.fmt(c, early)}（${ym(ms[0].key)}起）</small>`;
       let cls = 'flat', word = '基本持平', arrow = '→';
       if (Math.abs(diff) >= moved) {
         arrow = diff > 0 ? '↑' : '↓';
@@ -850,9 +867,10 @@ function drawTrends() {
     const el = document.createElement('div');
     el.className = 'm';
     el.innerHTML = `<div class="mh"><div><b>${c.label}</b><span class="u">${[c.unit, c.hint].filter(Boolean).join(' · ')}</span></div>${badge}</div>
-      <div class="big">${HD.fmt(c, recent)}<span>最近半年</span>${compare}</div><div class="plot"></div>`;
+      <div class="big">${HD.fmt(c, recent)}<span>最近半年</span>${compare}</div>
+      ${target != null ? `<div class="tgl"><i></i>${targetLabel}</div>` : ''}<div class="plot"></div>`;
     box.appendChild(el);
-    lineChart(el.querySelector('.plot'), REP.months, c, span);
+    lineChart(el.querySelector('.plot'), REP.months, c, span, target, targetLabel);
   }
 }
 
@@ -862,7 +880,7 @@ function drawSleep() {
   $('sleepCard').classList.toggle('hide', has.length < 2);
   if (has.length < 2) return;
   const box = $('sleepPlot');
-  const W = box.clientWidth || 600, H = 240, L = 42, RR = 4, T = 10, B = 24, n = months.length;
+  const W = box.clientWidth || 600, H = 240, L = 42, RR = 4, T = 10, B = 22, n = months.length;
   const x = i => L + (i + 0.5) / n * (W - L - RR);
   const lo = Math.floor((Math.min(...has.map(o => o.bed)) - 20) / 60) * 60;
   const hi = Math.ceil((Math.max(...has.map(o => o.wake)) + 20) / 60) * 60;
@@ -872,7 +890,7 @@ function drawSleep() {
   for (let m = lo; m <= hi; m += step) {
     s += `<line x1="${L}" x2="${W - RR}" y1="${y(m)}" y2="${y(m)}" stroke="${GRID}"/><text x="${L - 6}" y="${y(m) + 4}" text-anchor="end" class="ax">${clock(m)}</text>`;
   }
-  s += xAxis(months, x, H);
+  s = yearBands(months, x, (W - L - RR) / n, T, H - B, H, null) + s;
   const bw = Math.max(3, Math.min(14, (W - L - RR) / n * 0.62));
   months.forEach((o, i) => {
     if (o.bed == null || o.wake == null) return;

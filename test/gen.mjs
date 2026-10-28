@@ -38,6 +38,8 @@ const workouts = [];
 for (let t = phoneStart; t <= end; t += D) {
   const watch = t >= watchStart && !(t >= Date.UTC(2023, 6, 1) && t < Date.UTC(2023, 6, 15)); // 中间两周没戴表
   const prog = Math.max(0, (t - watchStart) / (end - watchStart));
+  // 每月一个随机偏移，模拟真实数据月与月之间的起伏
+  const mi = Math.floor(t / (30 * D)), mn = Math.sin(mi * 12.9898) * 43758.5453 % 1;
   // 步数：手机每小时一条；戴表时手表也记一份（稍多）
   let phone = 0, wat = 0;
   for (let h = 8; h < 22; h++) {
@@ -54,29 +56,32 @@ for (let t = phoneStart; t <= end; t += D) {
     rec('HKQuantityTypeIdentifierHeartRate', '小红的Apple Watch', 'count/min', a, a, Math.round(60 + rnd() * 40),
       '  <MetadataEntry key="HKMetadataKeyHeartRateMotionContext" value="0"/>\n');
   }
-  const rhr = 66 - 8 * prog + rnd() * 3;
+  const rhr = 66 - 8 * prog + rnd() * 3 + mn * 4;
   rec('HKQuantityTypeIdentifierRestingHeartRate', '小红的Apple Watch', 'count/min', t + 6 * H, t + 23 * H, rhr.toFixed(0));
   for (const hh of [3, 9, 15]) {
-    rec('HKQuantityTypeIdentifierHeartRateVariabilitySDNN', '小红的Apple Watch', 'ms', t + hh * H, t + hh * H + 6e4, (30 + 20 * prog + rnd() * 15).toFixed(4),
+    rec('HKQuantityTypeIdentifierHeartRateVariabilitySDNN', '小红的Apple Watch', 'ms', t + hh * H, t + hh * H + 6e4, (30 + 20 * prog + rnd() * 15 + mn * 8).toFixed(4),
       '  <HeartRateVariabilityMetadataList>\n   <InstantaneousBeatsPerMinute bpm="62" time="3:00:01.00 AM"/>\n   <InstantaneousBeatsPerMinute bpm="63" time="3:00:02.00 AM"/>\n  </HeartRateVariabilityMetadataList>\n');
   }
   if (rnd() < 0.3) rec('HKQuantityTypeIdentifierVO2Max', '小红的Apple Watch', 'mL/min·kg', t + 18 * H, t + 18 * H, (32 + 6 * prog).toFixed(2));
   rec('HKQuantityTypeIdentifierOxygenSaturation', '小红的Apple Watch', '%', t + 2 * H, t + 2 * H, (0.95 + rnd() * 0.04).toFixed(2));
   if (rnd() < 0.2) rec('HKQuantityTypeIdentifierBodyMass', '健康', 'kg', t + 8 * H, t + 8 * H, (60 - 3 * prog).toFixed(1));
   rec('HKQuantityTypeIdentifierActiveEnergyBurned', '小红的Apple Watch', 'kcal', t + 12 * H, t + 13 * H, 300);
+  const noSleep = t >= Date.UTC(2024, 0, 1) && t < Date.UTC(2025, 0, 1); // 有一年晚上没戴表
   // 睡眠：前一晚 23:xx 开始，分段；iPhone 另记一条 InBed
+  if (!noSleep) {
   let s = t - D + 23 * H + Math.round(rnd() * 90) * 6e4 - 30 * 6e4;
   const night = new Date(t).toISOString().slice(0, 10);
   rec('HKCategoryTypeIdentifierSleepAnalysis', '小红的iPhone', '', s - 10 * 6e4, s + 8 * H, 'HKCategoryValueSleepAnalysisInBed');
   let asleep = 0;
   const stages = ['AsleepCore', 'AsleepDeep', 'AsleepCore', 'AsleepREM', 'Awake', 'AsleepCore', 'AsleepREM', 'AsleepCore'];
   for (const st of stages) {
-    const len = st === 'Awake' ? 5 : 40 + Math.round(rnd() * 30);
+    const len = st === 'Awake' ? 5 : Math.round(40 + rnd() * 30 + mn * 8);
     if (st !== 'Awake') asleep += len;
     rec('HKCategoryTypeIdentifierSleepAnalysis', '小红的Apple Watch', '', s, s + len * 6e4, 'HKCategoryValueSleepAnalysis' + st);
     s += len * 6e4;
   }
   truth.sleepNight[night] = asleep;
+  }
   // 白天小睡（应被忽略）
   if (rnd() < 0.1) rec('HKCategoryTypeIdentifierSleepAnalysis', '小红的Apple Watch', '', t + 13 * H, t + 13.5 * H, 'HKCategoryValueSleepAnalysisAsleepCore');
   w(` <ActivitySummary dateComponents="${new Date(t).toISOString().slice(0, 10)}" activeEnergyBurned="${(350 + rnd() * 200).toFixed(3)}" activeEnergyBurnedGoal="400" activeEnergyBurnedUnit="kcal" appleMoveTime="0" appleMoveTimeGoal="0" appleExerciseTime="${Math.round(20 + rnd() * 30)}" appleExerciseTimeGoal="30" appleStandHours="${Math.round(8 + rnd() * 5)}" appleStandHoursGoal="12"/>\n`);
