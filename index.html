@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>健康数据压缩器 · 把 Apple 健康导出包变成 AI 读得懂的摘要</title>
+<style>
+  :root { --red:#ff2d55; --ink:#1d1d1f; --sub:#6e6e73; --line:#e5e5ea; --bg:#f5f5f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; }
+  .wrap { max-width:880px; margin:0 auto; padding:40px 20px 60px; }
+  h1 { font-size:28px; margin:0 0 6px; letter-spacing:.5px; }
+  h1 span { color:var(--red); }
+  .lead { color:var(--sub); margin:0 0 28px; }
+  .card { background:#fff; border-radius:16px; padding:22px 24px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:0; padding:0; list-style:none; counter-reset:s; }
+  .steps li { counter-increment:s; font-size:14px; color:var(--sub); }
+  .steps li::before { content:counter(s); display:inline-grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--red); color:#fff; font-size:12px; font-weight:600; margin-right:8px; }
+  .steps b { color:var(--ink); }
+  #drop { border:2px dashed #d2d2d7; border-radius:16px; padding:44px 20px; text-align:center; cursor:pointer; transition:.15s; background:#fff; }
+  #drop:hover, #drop.over { border-color:var(--red); background:#fff5f7; }
+  #drop .big { font-size:18px; font-weight:600; }
+  #drop .small { color:var(--sub); font-size:13px; margin-top:4px; }
+  .privacy { font-size:13px; color:var(--sub); text-align:center; margin-top:10px; }
+  .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin:12px 0 8px; }
+  .bar i { display:block; height:100%; width:0; background:var(--red); transition:width .2s; }
+  #progText { font-size:13px; color:var(--sub); font-variant-numeric:tabular-nums; }
+  .err { color:#c00; background:#fff0f0; border-radius:12px; padding:14px 18px; margin-bottom:16px; display:none; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .stat { background:var(--bg); border-radius:12px; padding:12px 14px; }
+  .stat .v { font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .stat .l { font-size:12px; color:var(--sub); }
+  .charts { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:12px; }
+  .chart { background:var(--bg); border-radius:12px; padding:10px 12px 6px; }
+  .chart .t { font-size:13px; color:var(--sub); display:flex; justify-content:space-between; }
+  .chart .t b { color:var(--ink); font-variant-numeric:tabular-nums; }
+  .chart svg { width:100%; height:70px; display:block; }
+  .opts { display:flex; flex-wrap:wrap; gap:10px 22px; align-items:center; font-size:14px; margin-bottom:12px; }
+  .opts select { font:inherit; padding:4px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; }
+  .opts label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+  textarea { width:100%; height:300px; font:12px/1.5 ui-monospace,Menlo,monospace; border:1px solid var(--line); border-radius:12px; padding:12px; resize:vertical; background:#fafafa; color:var(--ink); }
+  .btns { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; align-items:center; }
+  button, .btn { font:inherit; font-weight:600; border:0; border-radius:10px; padding:10px 18px; cursor:pointer; background:var(--red); color:#fff; text-decoration:none; }
+  .btn.ghost, button.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
+  #size { font-size:13px; color:var(--sub); margin-left:auto; }
+  h2 { font-size:17px; margin:0 0 14px; }
+  .hide { display:none; }
+  @media (max-width:640px) { .steps, .stats, .charts { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>健康数据<span>压缩器</span></h1>
+  <p class="lead">把几年的 Apple 健康数据，压成一份 DeepSeek 等 AI 能完整读完的摘要。</p>
+
+  <div class="card">
+    <ol class="steps">
+      <li><b>手机导出</b><br>「健康」App → 右上角头像 → 导出所有健康数据</li>
+      <li><b>传到电脑</b><br>用隔空投送或微信文件传输助手，把「导出.zip」发到电脑</li>
+      <li><b>拖进下面</b><br>生成摘要后一键复制，粘贴给 AI</li>
+    </ol>
+  </div>
+
+  <div id="pick">
+    <div id="drop">
+      <div class="big">把「导出.zip」拖到这里，或点击选择</div>
+      <div class="small">也可以选解压后的 export.xml · 文件再大也没关系，1GB 大约 1 分钟</div>
+    </div>
+    <input type="file" id="file" accept=".zip,.xml" hidden>
+    <div class="privacy">🔒 全程在你自己的电脑上处理，文件不会上传到任何地方（不放心可以断网再用）</div>
+  </div>
+
+  <div class="err" id="err"></div>
+
+  <div class="card hide" id="prog">
+    <h2>正在读取…</h2>
+    <div class="bar"><i id="barI"></i></div>
+    <div id="progText">准备中</div>
+  </div>
+
+  <div id="result" class="hide">
+    <div class="card">
+      <h2>读到了这些</h2>
+      <div class="stats" id="stats"></div>
+      <div class="charts" id="charts"></div>
+    </div>
+    <div class="card">
+      <h2>复制给 AI</h2>
+      <div class="opts">
+        <label>时间范围 <select id="optRange">
+          <option value="0">全部</option><option value="3">最近 3 年</option>
+          <option value="2">最近 2 年</option><option value="1">最近 1 年</option>
+        </select></label>
+        <label>明细粒度 <select id="optGran">
+          <option value="week">按周</option><option value="month">按月</option>
+        </select></label>
+        <label><input type="checkbox" id="optProfile" checked> 带上性别和年龄</label>
+        <label><input type="checkbox" id="optPrompt" checked> 附上分析要求</label>
+      </div>
+      <textarea id="out" readonly></textarea>
+      <div class="btns">
+        <button id="copy">复制全部</button>
+        <button class="ghost" id="save">下载为 txt</button>
+        <a class="btn ghost" href="https://chat.deepseek.com/" target="_blank" rel="noopener">打开 DeepSeek ↗</a>
+        <button class="ghost" id="again">换一个文件</button>
+        <span id="size"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// CORE-BEGIN 解析与汇总（不碰 DOM，可在 Node 里测试）
+const HD = (() => {
+  // 取「每天平均」的指标
+  const AVG = {
+    HKQuantityTypeIdentifierRestingHeartRate: 'rhr',
+    HKQuantityTypeIdentifierHeartRateVariabilitySDNN: 'hrv',
+    HKQuantityTypeIdentifierWalkingHeartRateAverage: 'whr',
+    HKQuantityTypeIdentifierVO2Max: 'vo2',
+    HKQuantityTypeIdentifierHeartRateRecoveryOneMinute: 'hrr',
+    HKQuantityTypeIdentifierRespiratoryRate: 'resp',
+    HKQuantityTypeIdentifierOxygenSaturation: 'spo2',
+    HKQuantityTypeIdentifierAppleSleepingWristTemperature: 'wtemp',
+    HKQuantityTypeIdentifierBodyMass: 'weight',
+    HKQuantityTypeIdentifierBodyFatPercentage: 'fat',
+  };
+  // 取「每天累加」的指标：手机和手表会重复记录，按来源分别累加后取最大的那个
+  const SUM = {
+    HKQuantityTypeIdentifierStepCount: 'steps',
+    HKQuantityTypeIdentifierActiveEnergyBurned: 'kcalR',
+    HKQuantityTypeIdentifierAppleExerciseTime: 'exR',
+    HKQuantityTypeIdentifierTimeInDaylight: 'daylight',
+  };
+  const ASLEEP = new Set(['AsleepCore', 'AsleepDeep', 'AsleepREM', 'AsleepUnspecified', 'Asleep']);
+
+  const COLS = [
+    { k: 'rhr', label: '静息心率', unit: '次/分', d: 1, note: '安静时的心率，越低通常心肺越好；连续几天升高常见于熬夜、生病、压力大' },
+    { k: 'hrv', label: 'HRV', unit: '毫秒', d: 0, note: '心率变异性(SDNN)，越高通常恢复越好、压力越小；个体差异大，主要看自己的变化' },
+    { k: 'whr', label: '步行心率', unit: '次/分', d: 1, note: '走路时的平均心率' },
+    { k: 'vo2', label: 'VO2max', unit: '毫升/公斤/分', d: 1, note: '最大摄氧量（手表估算），心肺耐力指标，越高越好' },
+    { k: 'hrr', label: '心率恢复', unit: '次/分', d: 0, note: '运动结束后 1 分钟心率降了多少，越大越好' },
+    { k: 'sleep', label: '睡眠', unit: '小时', d: 1, note: '每晚真正睡着的时长（不含醒着躺床）；白天小睡不计' },
+    { k: 'deep', label: '深睡', unit: '分钟', d: 0, note: '每晚深睡时长' },
+    { k: 'rem', label: 'REM', unit: '分钟', d: 0, note: '每晚快速眼动睡眠时长' },
+    { k: 'awake', label: '夜醒', unit: '分钟', d: 0, note: '睡眠中途清醒的时长' },
+    { k: 'bed', label: '入睡', unit: '时:分', fmt: 'clock', note: '平均入睡时刻' },
+    { k: 'wake', label: '醒来', unit: '时:分', fmt: 'clock', note: '平均醒来时刻' },
+    { k: 'bedSd', src: 'bed', agg: 'sd', label: '入睡波动', unit: '分钟', d: 0, note: '入睡时刻的标准差，越小作息越规律' },
+    { k: 'steps', label: '步数', unit: '步/天', d: 0, note: '日均步数' },
+    { k: 'kcal', label: '活动能量', unit: '千卡/天', d: 0, note: '运动和走动消耗的热量（不含基础代谢），即红色圆环' },
+    { k: 'ex', label: '锻炼', unit: '分钟/天', d: 0, note: '中等强度以上的活动时长，即绿色圆环' },
+    { k: 'stand', label: '站立', unit: '小时/天', d: 1, note: '有站起来活动的小时数，即蓝色圆环' },
+    { k: 'daylight', label: '日照', unit: '分钟/天', d: 0, note: '待在户外日光下的时长' },
+    { k: 'wkN', agg: 'rate', label: '训练次数', unit: '次/周', d: 1, note: '手表里记录的体能训练次数' },
+    { k: 'wkMin', agg: 'rate', label: '训练时长', unit: '分钟/周', d: 0, note: '体能训练总时长' },
+    { k: 'resp', label: '呼吸率', unit: '次/分', d: 1, note: '睡眠时的呼吸频率' },
+    { k: 'spo2', label: '血氧', unit: '%', d: 1, note: '血氧饱和度' },
+    { k: 'wtemp', label: '腕温偏差', unit: '°C', d: 2, note: '睡眠时手腕温度相对个人基线的偏差' },
+    { k: 'weight', label: '体重', unit: '公斤', d: 1, note: '' },
+    { k: 'fat', label: '体脂率', unit: '%', d: 1, note: '' },
+  ];
+  const DATA_KEYS = ['rhr', 'hrv', 'sleep', 'steps', 'kcal', 'ex', 'vo2', 'weight'];
+  const WATCH_KEYS = ['rhr', 'hrv', 'sleep', 'kcal', 'ex', 'stand', 'wkN'];
+
+  const WORKOUT = {
+    Running: '跑步', Walking: '步行', Cycling: '骑行', Hiking: '徒步', Swimming: '游泳', Yoga: '瑜伽', Pilates: '普拉提',
+    TraditionalStrengthTraining: '力量训练', FunctionalStrengthTraining: '功能性力量训练', CoreTraining: '核心训练',
+    HighIntensityIntervalTraining: '高强度间歇训练', MixedCardio: '混合有氧', Elliptical: '椭圆机', Rowing: '划船',
+    StairClimbing: '爬楼梯', Stairs: '爬楼梯', JumpRope: '跳绳', Dance: '舞蹈', SocialDance: '舞蹈', CardioDance: '有氧舞蹈',
+    Badminton: '羽毛球', Basketball: '篮球', Soccer: '足球', TableTennis: '乒乓球', Tennis: '网球', Golf: '高尔夫',
+    MindAndBody: '身心训练', Flexibility: '柔韧训练', Cooldown: '放松整理', Boxing: '拳击', Kickboxing: '搏击',
+    MartialArts: '武术', Climbing: '攀岩', SnowSports: '雪上运动', DownhillSkiing: '滑雪', Snowboarding: '单板滑雪',
+    Taichi: '太极', Barre: '芭蕾塑形', Other: '其他',
+  };
+
+  function attr(line, name) {
+    const k = ' ' + name + '="';
+    const i = line.indexOf(k);
+    if (i < 0) return null;
+    const s = i + k.length;
+    return line.slice(s, line.indexOf('"', s));
+  }
+  // "2023-01-01 23:30:00 +0800" → 按当地钟面时间算的毫秒数（不做时区换算，出差时也按当地作息算）
+  function wall(s) {
+    return Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +s.slice(11, 13), +s.slice(14, 16), +s.slice(17, 19));
+  }
+  const iso = t => new Date(t).toISOString().slice(0, 10);
+  const dayMs = 864e5;
+
+  function conv(key, unit, v) {
+    if (key === 'spo2' || key === 'fat') return v <= 1.5 ? v * 100 : v;
+    if (key === 'weight') return unit === 'lb' ? v * 0.45359237 : unit === 'g' ? v / 1000 : v;
+    if (key === 'kcalR') return unit === 'kJ' ? v / 4.184 : v;
+    if (key === 'wtemp') return unit === 'degF' ? v * 5 / 9 : v;
+    return v;
+  }
+
+  // ---------- 读文件：zip 里直接流式解压 export.xml，不需要先解压 ----------
+  async function view(file, a, b) { return new DataView(await file.slice(a, b).arrayBuffer()); }
+
+  async function openExport(file) {
+    const head = await view(file, 0, 4);
+    if (head.byteLength < 4 || head.getUint32(0, true) !== 0x04034b50) {
+      return { stream: file.stream(), total: file.size, method: 0 };
+    }
+    if (typeof DecompressionStream === 'undefined') throw new Error('NO_DECOMPRESS');
+    const tailStart = Math.max(0, file.size - 65557);
+    const tail = await view(file, tailStart, file.size);
+    let eocd = -1;
+    for (let i = tail.byteLength - 22; i >= 0; i--) if (tail.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error('BAD_ZIP');
+    let cdSize = tail.getUint32(eocd + 12, true), cdOff = tail.getUint32(eocd + 16, true);
+    if (eocd >= 20 && tail.getUint32(eocd - 20, true) === 0x07064b50) {
+      const z64 = Number(tail.getBigUint64(eocd - 20 + 8, true));
+      const z = await view(file, z64, z64 + 56);
+      if (z.getUint32(0, true) === 0x06064b50) {
+        cdSize = Number(z.getBigUint64(40, true));
+        cdOff = Number(z.getBigUint64(48, true));
+      }
+    }
+    const cd = await view(file, cdOff, cdOff + cdSize);
+    const dec = new TextDecoder();
+    let p = 0, hit = null;
+    while (p + 46 <= cd.byteLength && cd.getUint32(p, true) === 0x02014b50) {
+      const method = cd.getUint16(p + 10, true);
+      let comp = cd.getUint32(p + 20, true), size = cd.getUint32(p + 24, true), off = cd.getUint32(p + 42, true);
+      const nLen = cd.getUint16(p + 28, true), xLen = cd.getUint16(p + 30, true), cLen = cd.getUint16(p + 32, true);
+      const name = dec.decode(new Uint8Array(cd.buffer, p + 46, nLen));
+      if (/(^|\/)export\.xml$/.test(name)) {
+        for (let q = p + 46 + nLen, xe = q + xLen; q + 4 <= xe;) {
+          const id = cd.getUint16(q, true), len = cd.getUint16(q + 2, true);
+          if (id === 1) { // ZIP64：超过 4GB 的字段放在这里
+            let r = q + 4;
+            if (size === 0xffffffff) { size = Number(cd.getBigUint64(r, true)); r += 8; }
+            if (comp === 0xffffffff) { comp = Number(cd.getBigUint64(r, true)); r += 8; }
+            if (off === 0xffffffff) { off = Number(cd.getBigUint64(r, true)); r += 8; }
+          }
+          q += 4 + len;
+        }
+        hit = { method, comp, off };
+        break;
+      }
+      p += 46 + nLen + xLen + cLen;
+    }
+    if (!hit) throw new Error('NO_EXPORT_XML');
+    if (hit.method !== 0 && hit.method !== 8) throw new Error('BAD_ZIP');
+    const lh = await view(file, hit.off, hit.off + 30);
+    const start = hit.off + 30 + lh.getUint16(26, true) + lh.getUint16(28, true);
+    return { stream: file.slice(start, start + hit.comp).stream(), total: hit.comp, method: hit.method };
+  }
+
+  // ---------- 逐行解析 ----------
+  function newState() {
+    return { n: 0, days: new Map(), nights: new Map(), workouts: [], dob: null, sex: null, exportDate: null };
+  }
+  function day(S, key) {
+    let d = S.days.get(key);
+    if (!d) S.days.set(key, d = { avg: {}, sum: {}, act: null });
+    return d;
+  }
+
+  function onRecord(S, line) {
+    S.n++;
+    const type = attr(line, 'type');
+    let key = AVG[type];
+    if (key) {
+      const v = conv(key, attr(line, 'unit'), parseFloat(attr(line, 'value')));
+      if (!isFinite(v)) return;
+      const a = day(S, attr(line, 'startDate').slice(0, 10)).avg;
+      const acc = a[key] || (a[key] = [0, 0]);
+      acc[0] += v; acc[1]++;
+      return;
+    }
+    key = SUM[type];
+    if (key) {
+      const v = conv(key, attr(line, 'unit'), parseFloat(attr(line, 'value')));
+      if (!isFinite(v)) return;
+      const s = day(S, attr(line, 'startDate').slice(0, 10)).sum;
+      const src = attr(line, 'sourceName') || '?';
+      const m = s[key] || (s[key] = new Map());
+      m.set(src, (m.get(src) || 0) + v);
+      return;
+    }
+    if (type === 'HKCategoryTypeIdentifierSleepAnalysis') onSleep(S, line);
+  }
+
+  function onSleep(S, line) {
+    const v = (attr(line, 'value') || '').replace('HKCategoryValueSleepAnalysis', '');
+    const a = wall(attr(line, 'startDate')), b = wall(attr(line, 'endDate'));
+    const mins = (b - a) / 6e4;
+    if (!(mins > 0) || mins > 1440) return;
+    const h = new Date(a).getUTCHours();
+    if (h >= 11 && h < 18) return; // 白天小睡不算进夜间睡眠
+    const night = iso(a + 6 * 36e5); // 18 点以后开始的睡眠，算到第二天早上那一晚
+    const src = attr(line, 'sourceName') || '?';
+    let m = S.nights.get(night);
+    if (!m) S.nights.set(night, m = new Map());
+    let o = m.get(src);
+    if (!o) m.set(src, o = { asleep: 0, deep: 0, rem: 0, awake: 0, staged: false, start: Infinity, end: -Infinity });
+    if (ASLEEP.has(v)) {
+      o.asleep += mins;
+      if (a < o.start) o.start = a;
+      if (b > o.end) o.end = b;
+      if (v === 'AsleepDeep') { o.deep += mins; o.staged = true; }
+      else if (v === 'AsleepREM') { o.rem += mins; o.staged = true; }
+      else if (v === 'AsleepCore') o.staged = true;
+    } else if (v === 'Awake') o.awake += mins;
+  }
+
+  function onWorkout(S, line) {
+    const t = (attr(line, 'workoutActivityType') || '').replace('HKWorkoutActivityType', '');
+    let dur = parseFloat(attr(line, 'duration'));
+    const u = attr(line, 'durationUnit');
+    if (u === 's') dur /= 60; else if (u === 'hr') dur *= 60;
+    const date = (attr(line, 'startDate') || '').slice(0, 10);
+    if (date) S.workouts.push({ date, type: t, min: isFinite(dur) ? dur : 0 });
+  }
+
+  function onActivity(S, line) {
+    const date = attr(line, 'dateComponents');
+    if (!date) return;
+    let kcal = parseFloat(attr(line, 'activeEnergyBurned')) || 0;
+    if (attr(line, 'activeEnergyBurnedUnit') === 'kJ') kcal /= 4.184;
+    const ex = parseFloat(attr(line, 'appleExerciseTime')) || 0;
+    const stand = parseFloat(attr(line, 'appleStandHours')) || 0;
+    if (kcal > 0 || ex > 0 || stand > 0) day(S, date).act = { kcal, ex, stand }; // 全 0 = 那天没戴表
+  }
+
+  function onLine(S, line) {
+    let i = 0;
+    while (line.charCodeAt(i) === 32 || line.charCodeAt(i) === 9) i++;
+    if (line.charCodeAt(i) !== 60) return;
+    switch (line.charCodeAt(i + 1)) {
+      case 82: if (line.startsWith('<Record ', i)) onRecord(S, line); break;
+      case 87: if (line.startsWith('<Workout ', i)) onWorkout(S, line); break;
+      case 65: if (line.startsWith('<ActivitySummary ', i)) onActivity(S, line); break;
+      case 77:
+        if (line.startsWith('<Me ', i)) {
+          S.dob = attr(line, 'HKCharacteristicTypeIdentifierDateOfBirth') || null;
+          S.sex = { HKBiologicalSexFemale: '女', HKBiologicalSexMale: '男' }[attr(line, 'HKCharacteristicTypeIdentifierBiologicalSex')] || null;
+        }
+        break;
+      case 69: if (line.startsWith('<ExportDate ', i)) S.exportDate = (attr(line, 'value') || '').slice(0, 10) || null; break;
+    }
+  }
+
+  async function digest(file, onProgress) {
+    const src = await openExport(file);
+    let read = 0;
+    let st = src.stream.pipeThrough(new TransformStream({ transform(c, ctl) { read += c.byteLength; ctl.enqueue(c); } }));
+    if (src.method === 8) st = st.pipeThrough(new DecompressionStream('deflate-raw'));
+    const reader = st.pipeThrough(new TextDecoderStream()).getReader();
+    const S = newState();
+    let rest = '', tick = 0;
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const lines = (rest + value).split('\n');
+      rest = lines.pop();
+      for (let i = 0; i < lines.length; i++) onLine(S, lines[i]);
+      const now = performance.now();
+      if (onProgress && now - tick > 120) {
+        tick = now;
+        onProgress(Math.min(1, read / src.total), S.n);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    if (rest) onLine(S, rest);
+    if (!S.n && !S.workouts.length) throw new Error('EMPTY');
+    return finalize(S);
+  }
+
+  // ---------- 汇总成每天一行 ----------
+  function finalize(S) {
+    const keys = new Set([...S.days.keys(), ...S.nights.keys(), ...S.workouts.map(w => w.date)]);
+    const sorted = [...keys].filter(k => /^\d{4}-\d\d-\d\d$/.test(k)).sort();
+    const wk = new Map();
+    for (const w of S.workouts) {
+      const o = wk.get(w.date) || { n: 0, min: 0 };
+      o.n++; o.min += w.min;
+      wk.set(w.date, o);
+    }
+    const rows = [];
+    if (sorted.length) {
+      const t0 = Date.parse(sorted[0]), t1 = Date.parse(sorted[sorted.length - 1]);
+      for (let t = t0; t <= t1; t += dayMs) {
+        const date = iso(t), r = { date }, d = S.days.get(date);
+        if (d) {
+          for (const k in d.avg) r[k] = d.avg[k][0] / d.avg[k][1];
+          for (const k in d.sum) r[k] = Math.max(...d.sum[k].values());
+          if (d.act) { r.kcal = d.act.kcal; r.ex = d.act.ex; r.stand = d.act.stand; }
+          if (r.kcal == null && r.kcalR != null) r.kcal = r.kcalR;
+          if (r.ex == null && r.exR != null) r.ex = r.exR;
+          delete r.kcalR; delete r.exR;
+        }
+        const nm = S.nights.get(date);
+        if (nm) {
+          let best = null;
+          for (const o of nm.values()) {
+            if (!best || o.asleep > best.asleep + 1 || (Math.abs(o.asleep - best.asleep) <= 1 && o.staged && !best.staged)) best = o;
+          }
+          if (best && best.asleep >= 120) { // 不到 2 小时多半是没戴整晚，不算
+            r.sleep = best.asleep / 60;
+            if (best.staged) { r.deep = best.deep; r.rem = best.rem; }
+            r.awake = best.awake;
+            const ref = t - dayMs / 2; // 前一天中午 12 点
+            r.bed = (best.start - ref) / 6e4;
+            r.wake = (best.end - ref) / 6e4;
+          }
+        }
+        const w = wk.get(date);
+        if (w) { r.wkN = w.n; r.wkMin = w.min; }
+        rows.push(r);
+      }
+    }
+    return {
+      rows, records: S.n, workouts: S.workouts, dob: S.dob, sex: S.sex,
+      exportDate: S.exportDate, first: sorted[0], last: sorted[sorted.length - 1],
+      nights: rows.filter(r => r.sleep != null).length,
+    };
+  }
+
+  // ---------- 按周/月/年再汇总 ----------
+  const hasData = r => DATA_KEYS.some(k => r[k] != null);
+  function weekKey(date) {
+    const t = Date.parse(date), dow = new Date(t).getUTCDay();
+    return iso(t - ((dow + 6) % 7) * dayMs);
+  }
+  const PERIOD = { week: weekKey, month: d => d.slice(0, 7), year: d => d.slice(0, 4) };
+
+  function aggregate(rows, gran, anyWorkouts) {
+    const groups = new Map();
+    for (const r of rows) {
+      const k = PERIOD[gran](r.date);
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    }
+    const out = [];
+    for (const [key, rs] of groups) {
+      const o = { key, days: rs.filter(hasData).length };
+      for (const c of COLS) {
+        if (c.agg === 'rate') { // 只按戴了表的天数折算，只有手机数据的日子不算"0 次训练"
+          const worn = rs.filter(r => WATCH_KEYS.some(k => r[k] != null));
+          if (anyWorkouts && worn.length) o[c.k] = worn.reduce((s, r) => s + (r[c.k] || 0), 0) * 7 / worn.length;
+        } else if (c.agg === 'sd') {
+          const v = rs.map(r => r[c.src]).filter(x => x != null);
+          if (v.length >= 3) {
+            const m = v.reduce((a, b) => a + b, 0) / v.length;
+            o[c.k] = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1));
+          }
+        } else {
+          const v = rs.map(r => r[c.k]).filter(x => x != null);
+          if (v.length) o[c.k] = v.reduce((a, b) => a + b, 0) / v.length;
+        }
+      }
+      out.push(o);
+    }
+    return out;
+  }
+
+  function fmt(c, v) {
+    if (v == null || !isFinite(v)) return '';
+    if (c.fmt === 'clock') {
+      const m = ((Math.round(v) + 720) % 1440 + 1440) % 1440;
+      return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    }
+    return v.toFixed(c.d);
+  }
+
+  function table(list, keyLabel) {
+    const cols = COLS.filter(c => list.some(o => o[c.k] != null));
+    const head = [keyLabel, '有数据天数', ...cols.map(c => c.label)].join(',');
+    const body = list.map(o => [o.key, o.days, ...cols.map(c => fmt(c, o[c.k]))].join(','));
+    return { cols, text: [head, ...body].join('\n') };
+  }
+
+  function rangeRows(R, years) {
+    let rows = R.rows;
+    if (years > 0 && rows.length) {
+      const cut = iso(Date.parse(R.last) - Math.round(years * 365.25) * dayMs + dayMs);
+      rows = rows.filter(r => r.date >= cut);
+    }
+    const i = rows.findIndex(hasData);
+    return i < 0 ? [] : rows.slice(i);
+  }
+
+  function age(dob, at) {
+    if (!dob || !at) return null;
+    let a = +at.slice(0, 4) - +dob.slice(0, 4);
+    if (at.slice(5) < dob.slice(5, 10)) a--;
+    return a > 0 && a < 120 ? a : null;
+  }
+
+  const PROMPT = `【我的要求】
+你是一位懂运动生理和睡眠的健康数据分析师。请基于上面的数据给我一份解读：
+1. 总体画像：用 3~5 句话概括我这段时间的整体身体状态。
+2. 长期趋势：静息心率、HRV、心肺耐力(VO2max)、睡眠、活动量，各自是在变好、变差还是持平？指出明显的转折点（具体到哪几周或哪个月），并推测可能的原因。
+3. 相互关系：睡得多/睡得规律的周，HRV 和静息心率有没有更好？运动多的周和少的周，各项指标有什么差别？
+4. 异常时段：有没有某段时间指标明显变差（比如静息心率突然升高、HRV 骤降）？可能对应生病、熬夜、压力大或作息变化。
+5. 建议：给我 3 条最值得优先改变的具体建议，每条说明依据的是哪项数据。
+要求：
+· 只根据给出的数据下结论，引用具体数字和时间段；数据不够支撑的地方直接说"数据不足"，不要编造。
+· 空白表示没有数据，不是 0。
+· 这不是医疗诊断；如果看到值得去医院检查的信号，请明确提醒。
+· 用通俗的中文回答，少用术语，必要的术语用一句话解释。`;
+
+  function buildText(R, opt) {
+    const rows = rangeRows(R, opt.years);
+    if (!rows.length) return '这个时间范围内没有可用的数据。';
+    const anyW = R.workouts.length > 0;
+    const gLabel = opt.gran === 'month' ? '月份' : '周一日期';
+    const detail = table(aggregate(rows, opt.gran, anyW), gLabel);
+    const yearly = table(aggregate(R.rows.slice(Math.max(0, R.rows.findIndex(hasData))), 'year', anyW), '年份');
+    const from = rows[0].date, to = rows[rows.length - 1].date;
+    const n = detail.text.split('\n').length - 1;
+
+    const L = [];
+    L.push('下面是我从 Apple「健康」导出的数据摘要（已在本地按' + (opt.gran === 'month' ? '月' : '周') + '汇总，不含原始记录）。请先读完全部数据，再按最后的要求分析。', '');
+    if (opt.profile) {
+      const a = age(R.dob, R.exportDate || R.last);
+      const p = [R.sex, a != null ? a + ' 岁' : null].filter(Boolean).join('，');
+      if (p) L.push('【基本信息】' + p);
+    }
+    L.push('【数据范围】' + from + ' 至 ' + to + '，共 ' + n + (opt.gran === 'month' ? ' 个月' : ' 周'));
+    L.push('【怎么看】',
+      '· 每行是这' + (opt.gran === 'month' ? '个月' : '一周') + '的日均值；训练按"每周几次"折算。',
+      '· 空白 = 那段时间没有这项数据（多半没戴表或系统没测），不是 0。',
+      '· "有数据天数"太少的行，数值参考性低。',
+      '· 睡眠、入睡、醒来记在醒来那天；入睡/醒来是 24 小时制的平均时刻。');
+    const used = new Set([...detail.cols, ...yearly.cols]);
+    L.push('【字段】');
+    for (const c of COLS) if (used.has(c)) L.push('· ' + c.label + '（' + c.unit + '）' + (c.note ? '：' + c.note : ''));
+    L.push('', '【年度汇总】（全部年份）', yearly.text, '');
+
+    const cnt = new Map();
+    for (const w of R.workouts) {
+      if (w.date < from || w.date > to) continue;
+      const name = WORKOUT[w.type] || w.type;
+      const o = cnt.get(name) || { n: 0, min: 0 };
+      o.n++; o.min += w.min;
+      cnt.set(name, o);
+    }
+    if (cnt.size) {
+      const top = [...cnt].sort((a, b) => b[1].n - a[1].n).slice(0, 8);
+      L.push('【常做的训练】' + top.map(([k, o]) => k + ' ' + o.n + ' 次（共 ' + Math.round(o.min) + ' 分钟）').join('；'), '');
+    }
+    L.push('【' + (opt.gran === 'month' ? '每月' : '每周') + '明细】', detail.text);
+    if (opt.prompt) L.push('', PROMPT);
+    return L.join('\n');
+  }
+
+  return { digest, buildText, aggregate, rangeRows, COLS };
+})();
+// CORE-END
+</script>
+
+<script>
+const $ = id => document.getElementById(id);
+let R = null;
+
+const ERR = {
+  NO_DECOMPRESS: '你的浏览器版本太旧，不能直接读 zip。请换最新版 Chrome / Edge / Safari，或先把 zip 解压，再选里面的 export.xml。',
+  BAD_ZIP: '这个 zip 文件读不了，可能没传完整。请重新从手机导出一次再试。',
+  NO_EXPORT_XML: 'zip 里没找到 export.xml。请确认选的是「健康」App 导出的那个文件（通常叫「导出.zip」）。',
+  EMPTY: '文件里没读到健康记录。请确认选的是「健康」App 导出的文件。',
+};
+
+function showErr(msg) { $('err').textContent = msg; $('err').style.display = msg ? 'block' : 'none'; }
+
+async function run(file) {
+  showErr('');
+  $('pick').classList.add('hide');
+  $('result').classList.add('hide');
+  $('prog').classList.remove('hide');
+  const t0 = performance.now();
+  try {
+    R = await HD.digest(file, (p, n) => {
+      $('barI').style.width = (p * 100).toFixed(1) + '%';
+      const s = (performance.now() - t0) / 1000;
+      const left = p > 0.03 ? Math.max(0, s / p - s) : null;
+      $('progText').textContent = '已读 ' + (p * 100).toFixed(0) + '% · ' + n.toLocaleString() + ' 条记录' +
+        (left != null ? ' · 还要约 ' + Math.ceil(left) + ' 秒' : '');
+    });
+    $('prog').classList.add('hide');
+    showResult();
+  } catch (e) {
+    console.error(e);
+    $('prog').classList.add('hide');
+    $('pick').classList.remove('hide');
+    showErr(ERR[e.message] || ('读取出错：' + e.message));
+  }
+}
+
+function showResult() {
+  const span = R.first ? (Date.parse(R.last) - Date.parse(R.first)) / 864e5 / 365.25 : 0;
+  $('optRange').value = span > 3.2 ? '3' : '0';
+  const stats = [
+    [span >= 1 ? span.toFixed(1) + ' 年' : Math.round(span * 365) + ' 天', R.first + ' 起'],
+    [R.records.toLocaleString(), '条原始记录'],
+    [R.nights.toLocaleString(), '晚睡眠数据'],
+    [R.workouts.length.toLocaleString(), '次训练'],
+  ];
+  $('stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('result').classList.remove('hide');
+  refresh();
+}
+
+function sparkline(list, k, digits) {
+  const pts = list.map((o, i) => [i, o[k]]).filter(p => p[1] != null && isFinite(p[1]));
+  if (pts.length < 2) return null;
+  const vs = pts.map(p => p[1]), lo = Math.min(...vs), hi = Math.max(...vs);
+  const W = 300, H = 70, pad = 6;
+  const x = i => pad + i / Math.max(1, list.length - 1) * (W - pad * 2);
+  const y = v => H - pad - (hi === lo ? 0.5 : (v - lo) / (hi - lo)) * (H - pad * 2);
+  let d = '', prev = -2;
+  for (const [i, v] of pts) { d += (i === prev + 1 ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); prev = i; }
+  const last = pts[pts.length - 1];
+  return {
+    svg: `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="#ff2d55" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`,
+    range: lo.toFixed(digits) + ' ~ ' + hi.toFixed(digits), last: last[1].toFixed(digits),
+  };
+}
+
+function refresh() {
+  const opt = { years: +$('optRange').value, gran: $('optGran').value, profile: $('optProfile').checked, prompt: $('optPrompt').checked };
+  const text = HD.buildText(R, opt);
+  $('out').value = text;
+  const kb = new Blob([text]).size / 1024;
+  $('size').textContent = text.length.toLocaleString() + ' 字 · ' + kb.toFixed(0) + ' KB' + (text.length > 60000 ? ' · 偏长，建议改按月或缩短范围' : '');
+  const weeks = HD.aggregate(HD.rangeRows(R, opt.years), 'week', R.workouts.length > 0);
+  const C = [['rhr', '静息心率', 1], ['hrv', 'HRV', 0], ['sleep', '睡眠（小时）', 1], ['steps', '日均步数', 0]];
+  $('charts').innerHTML = C.map(([k, name, dg]) => {
+    const s = sparkline(weeks, k, dg);
+    return s ? `<div class="chart"><div class="t"><span>${name} · 每周</span><span>范围 ${s.range} · 最近 <b>${s.last}</b></span></div>${s.svg}</div>` : '';
+  }).join('');
+}
+
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) run(f); };
+$('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) run(f); };
+for (const id of ['optRange', 'optGran', 'optProfile', 'optPrompt']) $(id).onchange = refresh;
+
+$('copy').onclick = async () => {
+  const t = $('out').value;
+  try { await navigator.clipboard.writeText(t); }
+  catch { $('out').select(); document.execCommand('copy'); }
+  $('copy').textContent = '已复制 ✓';
+  setTimeout(() => $('copy').textContent = '复制全部', 1500);
+};
+$('save').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([$('out').value], { type: 'text/plain;charset=utf-8' }));
+  a.download = '健康数据摘要.txt';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('again').onclick = () => { $('result').classList.add('hide'); $('pick').classList.remove('hide'); };
+</script>
+</body>
+</html>
